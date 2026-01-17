@@ -1,54 +1,268 @@
-# Scalene MCP
+# Scalene-MCP
 
-**Professional MCP server for Scalene profiler — LLM-optimized access to CPU, GPU, and memory profiling**
-
-[![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
-[![FastMCP](https://img.shields.io/badge/FastMCP-2.0+-green.svg)](https://github.com/jlowin/fastmcp)
-[![Code style: ruff](https://img.shields.io/badge/code%20style-ruff-000000.svg)](https://github.com/astral-sh/ruff)
+A FastMCP v2 server providing LLMs with structured access to [Scalene](https://github.com/plasma-umass/scalene)'s comprehensive CPU, GPU, and memory profiling capabilities.
 
 ## Overview
 
-Scalene MCP provides a Model Context Protocol (MCP) server that makes Scalene's comprehensive Python profiling capabilities accessible to Large Language Models. Through a minimal, well-designed interface of 3 powerful tools, 7 data resources, and 5 workflow prompts, LLMs can help you profile code, analyze performance bottlenecks, detect memory leaks, and optimize Python applications.
+Scalene-MCP transforms Scalene's powerful profiling output into an LLM-friendly format through a clean, minimal set of well-designed tools. Get detailed performance insights without images or excessive context overhead.
 
-**Key Features:**
-- **Comprehensive Profiling:** CPU (Python/C/system), GPU, and memory profiling via Scalene
-- **LLM-Friendly Design:** Minimal tool surface with comprehensive parameters
-- **Production Ready:** 100% test coverage, strict type checking, professional code quality
-- **Flexible Deployment:** Supports script paths and code snippets
-- **Rich Analysis:** Automated hotspot detection, leak detection, and optimization recommendations
+### Key Features
 
-## Architecture
-
-### Tools (3)
-- **`profile`** - Execute profiling with full Scalene option control
-- **`analyze`** - Generate insights and recommendations from profile data
-- **`compare`** - Compare multiple profiles to identify regressions/improvements
-
-### Resources (7)
-- **`profile://{id}`** - Access raw profile data
-- **`profile://{id}/summary`** - Get high-level summary
-- **`profile://{id}/hotspots`** - Retrieve CPU/memory hotspots
-- **`profile://{id}/leaks`** - Access memory leak detections
-- **`profile://{id}/functions`** - Function-level metrics
-- **`profile://{id}/files/{file}`** - File-specific line-by-line data
-- **`profile://list`** - List all available profiles
-
-### Prompts (5)
-- **`quick_profile`** - Fast profiling workflow
-- **`deep_analysis`** - Comprehensive performance analysis
-- **`memory_investigation`** - Focus on memory usage and leaks
-- **`optimization_guide`** - Step-by-step optimization recommendations
-- **`compare_versions`** - Before/after comparison workflow
+- **Complete CPU profiling**: Line-by-line Python/C time, system time, CPU utilization
+- **Memory profiling**: Peak/average memory per line, leak detection with velocity metrics
+- **GPU profiling**: NVIDIA and Apple GPU support with per-line attribution
+- **Advanced analysis**: Stack traces, bottleneck identification, performance recommendations
+- **Profile comparison**: Track performance changes across runs
+- **LLM-optimized**: Structured JSON output, summaries before details, context-aware formatting
 
 ## Installation
 
-### Using uv (Recommended)
+### Prerequisites
+
+- Python 3.10+
+- uv (for development)
+
+### From Source
 
 ```bash
-git clone <repository>
+git clone https://github.com/plasma-umass/scalene-mcp.git
 cd scalene-mcp
+uv venv
 uv sync
 ```
+
+### As a Package
+
+```bash
+pip install scalene-mcp
+```
+
+## Quick Start
+
+### Running the Server
+
+```bash
+# Development mode
+uv run scalene_mcp.server
+
+# Production mode
+python -m scalene_mcp.server
+```
+
+### Using with Claude
+
+Configure in your MCP client (e.g., Claude's `claude_desktop_config.json`):
+
+```json
+{
+  "mcpServers": {
+    "scalene": {
+      "command": "python",
+      "args": ["-m", "scalene_mcp.server"]
+    }
+  }
+}
+```
+
+### Example Usage
+
+```python
+from scalene_mcp.profiler import ScaleneProfiler
+import asyncio
+
+async def main():
+    profiler = ScaleneProfiler()
+    
+    # Profile a script
+    result = await profiler.profile_script(
+        "fibonacci.py",
+        cpu=True,
+        memory=True,
+        gpu=False
+    )
+    
+    print(f"Profiled in {result.summary.elapsed_time_sec:.2f}s")
+    print(f"Peak memory: {result.summary.max_footprint_mb:.1f}MB")
+    
+asyncio.run(main())
+```
+
+## Available Tools
+
+### Core Profiling
+
+- **profile_script**: Profile a Python script with customizable options
+- **profile_code**: Profile a code snippet directly
+
+### Analysis
+
+- **analyze_profile**: Get comprehensive analysis of a profile
+- **get_cpu_hotspots**: Find CPU-intensive lines
+- **get_memory_hotspots**: Identify memory-heavy code
+- **get_gpu_hotspots**: Locate GPU-intensive operations
+- **get_bottlenecks**: Identify performance bottlenecks by severity
+- **get_memory_leaks**: Detect potential memory leaks
+- **get_function_summary**: Aggregate metrics by function
+
+### Comparison & Storage
+
+- **compare_profiles**: Compare two profiles to identify changes
+- **list_profiles**: View stored profiles
+- **get_profile**: Retrieve a specific profile
+- **get_file_details**: Get per-file metrics and context
+
+## Configuration
+
+### Profiling Options
+
+All profiling tools support these options:
+
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+| `cpu` | bool | true | Profile CPU time |
+| `memory` | bool | true | Profile memory |
+| `gpu` | bool | false | Profile GPU usage |
+| `stacks` | bool | false | Collect stack traces |
+| `cpu_sampling_rate` | float | 0.01 | CPU sampling interval (seconds) |
+| `cpu_percent_threshold` | float | 1.0 | Minimum CPU% to report |
+| `malloc_threshold` | int | 100 | Minimum allocation size (bytes) |
+| `profile_only` | str | "" | Profile only paths containing this |
+| `profile_exclude` | str | "" | Exclude paths containing this |
+| `reduced_profile` | bool | false | Only report high-activity lines |
+| `use_virtual_time` | bool | false | Use virtual time instead of wall time |
+| `memory_leak_detector` | bool | true | Enable leak detection |
+
+### Environment Variables
+
+- `SCALENE_CPU_PERCENT_THRESHOLD`: Override default CPU threshold
+- `SCALENE_MALLOC_THRESHOLD`: Override default malloc threshold
+
+## Architecture
+
+### Components
+
+- **ScaleneProfiler**: Async wrapper around Scalene CLI
+- **ProfileParser**: Converts Scalene JSON to structured models
+- **ProfileAnalyzer**: Extracts insights and hotspots
+- **ProfileComparator**: Compares profiles for regressions
+- **FastMCP Server**: Exposes tools via MCP protocol
+
+### Data Flow
+
+```
+Python Script
+    ↓
+ScaleneProfiler (subprocess)
+    ↓
+Scalene CLI (--json)
+    ↓
+Temp JSON File
+    ↓
+ProfileParser
+    ↓
+Pydantic Models (ProfileResult)
+    ↓
+Analyzer / Comparator
+    ↓
+MCP Tools
+    ↓
+LLM Client
+```
+
+## Troubleshooting
+
+### GPU Permission Error
+
+If you see `PermissionError` when profiling with GPU:
+
+```python
+# Disable GPU profiling in test environments
+result = await profiler.profile_script("script.py", gpu=False)
+```
+
+### Profile Not Found
+
+Profiles are stored in memory during the server session. For persistence, implement the storage interface.
+
+### Timeout Issues
+
+Adjust the timeout parameter:
+
+```python
+result = await profiler.profile_script(
+    "slow_script.py",
+    timeout=30.0  # 30 seconds
+)
+```
+
+## Development
+
+### Running Tests
+
+```bash
+# All tests with coverage
+uv run pytest -v --cov=src/scalene_mcp
+
+# Specific test file
+uv run pytest tests/test_profiler.py -v
+
+# With coverage report
+uv run pytest --cov=src/scalene_mcp --cov-report=html
+```
+
+### Code Quality
+
+```bash
+# Type checking
+uv run mypy src/
+
+# Linting
+uv run ruff check src/
+
+# Formatting
+uv run ruff format src/
+```
+
+## Contributing
+
+Contributions are welcome! Please:
+
+1. Fork the repository
+2. Create a feature branch
+3. Add tests for new functionality
+4. Ensure all tests pass and coverage ≥ 85%
+5. Submit a pull request
+
+## License
+
+MIT License - see LICENSE file for details.
+
+## Citation
+
+If you use Scalene-MCP in research, please cite both this project and Scalene:
+
+```bibtex
+@software{scalene_mcp,
+  title={Scalene-MCP: LLM-Friendly Profiling Server},
+  year={2026}
+}
+
+@inproceedings{berger2020scalene,
+  title={Scalene: Scripting-Language Aware Profiling for Python},
+  author={Berger, Emery},
+  year={2020}
+}
+```
+
+## Support
+
+- **Issues**: GitHub Issues for bug reports and feature requests
+- **Discussions**: GitHub Discussions for questions and ideas
+- **Documentation**: See `docs/` directory
+
+---
+
+Made with ❤️ for the Python performance community.
 
 ### Manual Installation
 
