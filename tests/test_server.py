@@ -6,6 +6,7 @@ from unittest.mock import AsyncMock, patch
 from scalene_mcp.models import ProfileResult
 from scalene_mcp.parser import ProfileParser
 from scalene_mcp.server import (
+    analyze,
     analyze_profile,
     compare_profiles,
     get_bottlenecks,
@@ -17,6 +18,7 @@ from scalene_mcp.server import (
     get_memory_leaks,
     get_recommendations,
     list_profiles,
+    profile,
     profile_code,
     profile_script,
     recent_profiles,

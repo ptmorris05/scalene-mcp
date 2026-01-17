@@ -441,6 +441,242 @@ async def list_profiles() -> list[str]:
 server.tool(list_profiles)
 
 
+# ============================================================================
+# BACKWARD COMPATIBILITY WRAPPERS (for existing tests)
+# ============================================================================
+# These wrappers maintain backward compatibility with tests written for the
+# old 16-tool API. They delegate to the new consolidated 7-tool API.
+# These are NOT registered as MCP tools - they're only for internal use.
+
+async def profile_script(
+    script_path: str,
+    cpu_only: bool = False,
+    include_memory: bool = True,
+    include_gpu: bool = False,
+    reduced_profile: bool = False,
+    profile_only: str = "",
+    profile_exclude: str = "",
+    use_virtual_time: bool = False,
+    cpu_percent_threshold: float = 1.0,
+    malloc_threshold: int = 100,
+    script_args: list[str] | None = None,
+    **kwargs: dict[str, Any],
+) -> dict[str, Any]:
+    """DEPRECATED: Use profile(type='script', ...) instead.
+    
+    This is a backward-compatibility wrapper for tests.
+    """
+    return await profile(
+        type="script",
+        script_path=script_path,
+        cpu_only=cpu_only,
+        include_memory=include_memory,
+        include_gpu=include_gpu,
+        reduced_profile=reduced_profile,
+        profile_only=profile_only,
+        profile_exclude=profile_exclude,
+        use_virtual_time=use_virtual_time,
+        cpu_percent_threshold=cpu_percent_threshold,
+        malloc_threshold=malloc_threshold,
+        script_args=script_args,
+    )
+
+
+async def profile_code(
+    code: str,
+    cpu_only: bool = False,
+    include_memory: bool = True,
+    include_gpu: bool = False,
+    reduced_profile: bool = False,
+    **kwargs: dict[str, Any],
+) -> dict[str, Any]:
+    """DEPRECATED: Use profile(type='code', ...) instead.
+    
+    This is a backward-compatibility wrapper for tests.
+    """
+    return await profile(
+        type="code",
+        code=code,
+        cpu_only=cpu_only,
+        include_memory=include_memory,
+        include_gpu=include_gpu,
+        reduced_profile=reduced_profile,
+    )
+
+
+async def analyze_profile(
+    profile_id: str,
+    focus: str = "all",
+    cpu_threshold: float = 5.0,
+    memory_threshold_mb: float = 10.0,
+    **kwargs: dict[str, Any],
+) -> dict[str, Any]:
+    """DEPRECATED: Use analyze(profile_id, metric_type='all', ...) instead.
+    
+    This is a backward-compatibility wrapper for tests.
+    Maps old 'focus' parameter to new 'metric_type' parameter.
+    Flattens response structure to match old API.
+    """
+    # Map old focus names to new metric_type values
+    focus_map = {
+        "all": "all",
+        "cpu": "cpu",
+        "memory": "memory",
+        "gpu": "gpu",
+        "bottlenecks": "bottlenecks",
+        "leaks": "leaks",
+        "recommendations": "recommendations",
+    }
+    metric_type = focus_map.get(focus, "all")
+    
+    result = await analyze(
+        profile_id=profile_id,
+        metric_type=metric_type,
+        cpu_threshold=cpu_threshold,
+        memory_threshold_mb=memory_threshold_mb,
+    )
+    
+    # Old API returned flat structure with focus, hotspots, recommendations, etc.
+    # New API returns {metric_type: ..., data: {...}}
+    # Flatten the structure for backward compatibility
+    if isinstance(result, dict) and "data" in result:
+        data = result["data"]
+        
+        # Handle different data types returned by different metric_types
+        if isinstance(data, list):
+            # For "cpu", "memory", "gpu" - hotspots come as a list
+            flat_result = {
+                "focus": focus,
+                "hotspots": data,
+                "metric_type": metric_type,
+            }
+        elif isinstance(data, dict):
+            # For "all", "bottlenecks", etc. - data is already a dict
+            flat_result = data.copy()
+            flat_result["focus"] = focus  # Restore old focus parameter
+        else:
+            flat_result = {"focus": focus, "data": data}
+        
+        return flat_result
+    return result
+
+
+async def get_cpu_hotspots(
+    profile_id: str, top_n: int = 10, **kwargs: dict[str, Any]
+) -> dict[str, Any] | list[dict[str, Any]]:
+    """DEPRECATED: Use analyze(profile_id, metric_type='cpu', top_n=...) instead.
+    
+    This is a backward-compatibility wrapper for tests.
+    """
+    result = await analyze(profile_id=profile_id, metric_type="cpu", top_n=top_n)
+    # Extract 'hotspots' from nested data structure
+    data = result.get("data", {})
+    return data.get("hotspots", []) if isinstance(data, dict) else []
+
+
+async def get_memory_hotspots(
+    profile_id: str, top_n: int = 10, **kwargs: dict[str, Any]
+) -> dict[str, Any] | list[dict[str, Any]]:
+    """DEPRECATED: Use analyze(profile_id, metric_type='memory', top_n=...) instead.
+    
+    This is a backward-compatibility wrapper for tests.
+    """
+    result = await analyze(profile_id=profile_id, metric_type="memory", top_n=top_n)
+    # Extract 'hotspots' from nested data structure
+    data = result.get("data", {})
+    return data.get("hotspots", []) if isinstance(data, dict) else []
+
+
+async def get_gpu_hotspots(
+    profile_id: str, top_n: int = 10, **kwargs: dict[str, Any]
+) -> dict[str, Any] | list[dict[str, Any]]:
+    """DEPRECATED: Use analyze(profile_id, metric_type='gpu', top_n=...) instead.
+    
+    This is a backward-compatibility wrapper for tests.
+    """
+    result = await analyze(profile_id=profile_id, metric_type="gpu", top_n=top_n)
+    # Extract 'hotspots' from nested data structure
+    data = result.get("data", {})
+    return data.get("hotspots", []) if isinstance(data, dict) else []
+
+
+async def get_bottlenecks(
+    profile_id: str,
+    cpu_threshold: float = 5.0,
+    memory_threshold_mb: float = 10.0,
+    **kwargs: dict[str, Any],
+) -> dict[str, Any] | list[dict[str, Any]]:
+    """DEPRECATED: Use analyze(profile_id, metric_type='bottlenecks', ...) instead.
+    
+    This is a backward-compatibility wrapper for tests.
+    """
+    result = await analyze(
+        profile_id=profile_id,
+        metric_type="bottlenecks",
+        cpu_threshold=cpu_threshold,
+        memory_threshold_mb=memory_threshold_mb,
+    )
+    # Returns {metric_type, data: {cpu: [...], memory: [...], gpu: [...]}}
+    # Return the entire data dict for backward compatibility
+    return result.get("data", {})
+
+
+async def get_memory_leaks(
+    profile_id: str, **kwargs: dict[str, Any]
+) -> dict[str, Any] | list[dict[str, Any]]:
+    """DEPRECATED: Use analyze(profile_id, metric_type='leaks') instead.
+    
+    This is a backward-compatibility wrapper for tests.
+    """
+    result = await analyze(profile_id=profile_id, metric_type="leaks")
+    # Extract 'leaks' from nested data structure
+    data = result.get("data", {})
+    return data.get("leaks", []) if isinstance(data, dict) else []
+
+
+async def get_file_details(
+    profile_id: str, filename: str, **kwargs: dict[str, Any]
+) -> dict[str, Any] | list[dict[str, Any]]:
+    """DEPRECATED: Use analyze(profile_id, metric_type='file', filename=...) instead.
+    
+    This is a backward-compatibility wrapper for tests.
+    """
+    result = await analyze(
+        profile_id=profile_id, metric_type="file", filename=filename
+    )
+    # Returns {metric_type, filename, data: {lines: [...], ...}}
+    # Return the entire data dict for backward compatibility
+    return result.get("data", {})
+
+
+async def get_function_summary(
+    profile_id: str, top_n: int = 10, **kwargs: dict[str, Any]
+) -> dict[str, Any] | list[dict[str, Any]]:
+    """DEPRECATED: Use analyze(profile_id, metric_type='functions', top_n=...) instead.
+    
+    This is a backward-compatibility wrapper for tests.
+    """
+    result = await analyze(
+        profile_id=profile_id, metric_type="functions", top_n=top_n
+    )
+    # Returns {metric_type, data: [...list of functions...]}
+    # Return the entire data list for backward compatibility
+    return result.get("data", [])
+
+
+async def get_recommendations(
+    profile_id: str, **kwargs: dict[str, Any]
+) -> dict[str, Any] | list[dict[str, Any]]:
+    """DEPRECATED: Use analyze(profile_id, metric_type='recommendations') instead.
+    
+    This is a backward-compatibility wrapper for tests.
+    """
+    result = await analyze(profile_id=profile_id, metric_type="recommendations")
+    # Extract 'recommendations' from nested data structure
+    data = result.get("data", {})
+    return data.get("recommendations", []) if isinstance(data, dict) else []
+
+
 def main() -> None:
     """Entry point for running the server."""
     server.run()
