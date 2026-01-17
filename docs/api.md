@@ -2,6 +2,25 @@
 
 Complete documentation for Scalene-MCP's tools, models, and programmatic interface.
 
+## Scope & Limitations
+
+Scalene-MCP supports **subprocess-based profiling** of Python scripts and code snippets. This approach was chosen for reliability, security, and clean error handling.
+
+### ✅ Supported Use Cases
+- Profile standalone Python scripts
+- Profile packages/applications via entry point
+- Profile code with custom arguments
+- Analyze, compare, and investigate profiles
+
+### ❌ Not Currently Supported
+- **In-process profiling**: Using `Scalene.start()`/`stop()` directly
+- **Process attachment**: Profiling running processes with `--pid`
+- **Function-level profiling**: Profiling individual function calls without subprocess
+
+**Note**: These limitations are intentional design choices. The subprocess model provides better isolation, reliability, and resource cleanup—ideal for LLM-based workflows. If you need in-process profiling, see [Future Enhancements](#future-enhancements) below.
+
+---
+
 ## FastMCP Tools
 
 ### Core Profiling
@@ -739,6 +758,73 @@ A: Yes, but profile in development/staging first. Profiling is resource-intensiv
 
 ---
 
+## Future Enhancements
+
+### Planned (v1.1+)
+
+#### `profile_function()` - In-Process Function Profiling
+Profile individual functions without subprocess overhead.
+
+```python
+async def profile_function(
+    func: Callable,
+    *args,
+    **kwargs
+) -> ProfileResult:
+    """Profile a single function call with Scalene."""
+```
+
+**Benefits**:
+- Lower latency than subprocess profiling
+- Direct code integration
+- Ideal for quick micro-profiling
+
+**When to expect**: Phase 8-9 (potential)
+
+---
+
+#### `profile_with_context()` - Context Manager Support
+Profile code blocks using context managers.
+
+```python
+async with profiler.profile_context("data_processing"):
+    # Code to profile
+    process_data()
+```
+
+**Benefits**:
+- Named profiling blocks
+- Nested profiling support
+- Integration with code workflows
+
+---
+
+### Under Consideration (v2.0+)
+
+#### `profile_process()` - Process Attachment
+Attach to and profile running processes.
+
+```python
+result = await profiler.profile_process(
+    pid=12345,
+    duration=30.0
+)
+```
+
+**Complexity**: High (OS-specific, permissions)  
+**Value**: Lower priority for LLM workflows
+
+---
+
 ## Version History
 
 See [CHANGELOG.md](../CHANGELOG.md) for detailed version history.
+
+---
+
+## See Also
+
+- [Architecture](./architecture.md) - System design
+- [Examples](./examples.md) - Code examples
+- [Troubleshooting](./troubleshooting.md) - Solutions
+- [README](../README.md) - Quick start

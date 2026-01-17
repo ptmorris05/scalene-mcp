@@ -6,6 +6,23 @@ A FastMCP v2 server providing LLMs with structured access to [Scalene](https://g
 
 Scalene-MCP transforms Scalene's powerful profiling output into an LLM-friendly format through a clean, minimal set of well-designed tools. Get detailed performance insights without images or excessive context overhead.
 
+### What Scalene-MCP Does
+
+- ✅ **Profile Python scripts** with full Scalene feature set
+- ✅ **Analyze profiles** for hotspots, bottlenecks, memory leaks
+- ✅ **Compare profiles** to detect regressions
+- ✅ **Pass arguments** to profiled scripts
+- ✅ **Structured output** in JSON format for LLMs
+- ✅ **Async execution** for non-blocking profiling
+
+### What Scalene-MCP Doesn't Do
+
+- ❌ **In-process profiling** (`Scalene.start()`/`stop()`) - uses subprocess instead for isolation
+- ❌ **Process attachment** (`--pid` based profiling) - profiles scripts, not running processes
+- ❌ **Single-function profiling** - designed for complete script analysis
+
+**Note**: The subprocess-based approach was chosen for reliability and simplicity. LLM workflows typically profile complete scripts, which is a perfect fit. See [SCALENE_MODES_ANALYSIS.md](./SCALENE_MODES_ANALYSIS.md) for detailed scope analysis.
+
 ### Key Features
 
 - **Complete CPU profiling**: Line-by-line Python/C time, system time, CPU utilization

@@ -333,6 +333,47 @@ Returns to LLM via MCP protocol
 
 ## Key Design Decisions
 
+### 0. Subprocess-Based Profiling (Scope Decision)
+
+**Decision**: Use subprocess-based profiling (`python -m scalene run`) instead of direct Scalene API
+
+**Rationale**:
+- **Isolation**: Script execution isolated from profiler state
+- **Reliability**: No Scalene state conflicts or memory leaks
+- **Simplicity**: Don't manage Scalene's internal state machine
+- **Safety**: Script crashes/hangs don't crash profiler
+- **Resource Cleanup**: Automatic process termination
+- **LLM Workflows**: Subprocess approach fits "script profiling" use case
+
+**What This Supports**:
+- ✅ Profile standalone scripts
+- ✅ Profile packages (via entry point)
+- ✅ Pass command-line arguments
+- ✅ Full profiling feature set
+
+**What This Doesn't Support**:
+- ❌ In-process profiling (`Scalene.start()`/`stop()`)
+- ❌ Function-level profiling without subprocess
+- ❌ Process attachment/PID-based profiling
+
+**Trade-offs**:
+- Subprocess overhead (~1-5% extra time per profile)
+- Temporary file I/O (mitigated by async)
+- But gains isolation, reliability, and simplicity
+
+**Future**: Could add in-process profiling in v1.1+ if needed:
+```python
+# Hypothetical future method
+async def profile_function(func, *args, **kwargs) -> ProfileResult:
+    """Profile a function using direct Scalene API."""
+    # Would use Scalene.start()/stop() directly
+    # Lower latency but more complex error handling
+```
+
+**See Also**: [SCALENE_MODES_ANALYSIS.md](../SCALENE_MODES_ANALYSIS.md) for detailed coverage analysis
+
+---
+
 ### 1. Async/Await for Subprocess
 
 **Decision**: Use `asyncio.create_subprocess_exec()` instead of subprocess.run()
