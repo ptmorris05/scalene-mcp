@@ -242,3 +242,39 @@ async def test_parse_identifies_gpu_usage(parser: ProfileParser, profiles_dir: P
     # Summary should reflect GPU usage
     if gpu_found:
         assert result.summary.gpu_enabled
+
+@pytest.mark.asyncio
+async def test_parse_json_with_profile_id(parser: ProfileParser):
+    """Test parse_json with explicit profile ID"""
+    json_str = json.dumps({
+        "elapsed_time_sec": 1.0,
+        "max_memory_mb": 100.0,
+        "total_allocations_mb": 50.0,
+        "allocation_count": 1000,
+        "total_cpu_samples": 5000,
+        "python_time_percent": 70.0,
+        "native_time_percent": 20.0,
+        "system_time_percent": 10.0,
+        "files": {},
+    })
+    
+    result = parser.parse_json(json_str, profile_id="explicit-id")
+    assert result.profile_id == "explicit-id"
+
+
+@pytest.mark.asyncio
+async def test_parse_json_without_profile_id(parser: ProfileParser):
+    """Test parse_json generates profile ID when not provided"""
+    json_str = json.dumps({
+        "elapsed_time_sec": 1.0,
+        "max_memory_mb": 100.0,
+        "total_allocations_mb": 50.0,
+        "allocation_count": 1000,
+        "total_cpu_samples": 5000,
+        "python_time_percent": 70.0,
+        "native_time_percent": 20.0,
+        "system_time_percent": 10.0,
+        "files": {},
+    })
+    
+    result = parser.parse_json(json_str)

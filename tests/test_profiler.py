@@ -209,3 +209,186 @@ async def test_profile_with_all_options(profiler: ScaleneProfiler, fibonacci_pat
     assert result.profile_id
     assert result.summary.total_cpu_samples > 0
     assert len(result.files) > 0
+
+@pytest.mark.asyncio
+async def test_profile_cpu_only(profiler: ScaleneProfiler, fibonacci_path: Path):
+    """Test CPU-only profiling mode"""
+    result = await profiler.profile_script(
+        fibonacci_path,
+        cpu_only=True,
+        gpu=False
+    )
+    
+    assert isinstance(result, ProfileResult)
+    assert result.summary.total_cpu_samples > 0
+
+
+@pytest.mark.asyncio
+async def test_profile_no_cpu(profiler: ScaleneProfiler, fibonacci_path: Path):
+    """Test profiling with CPU disabled"""
+    result = await profiler.profile_script(
+        fibonacci_path,
+        cpu=False,
+        memory=True,
+        gpu=False
+    )
+    
+    assert isinstance(result, ProfileResult)
+
+
+@pytest.mark.asyncio
+async def test_profile_no_memory(profiler: ScaleneProfiler, fibonacci_path: Path):
+    """Test profiling with memory disabled"""
+    result = await profiler.profile_script(
+        fibonacci_path,
+        cpu=True,
+        memory=False,
+        gpu=False
+    )
+    
+    assert isinstance(result, ProfileResult)
+
+
+@pytest.mark.asyncio
+async def test_profile_with_stacks(profiler: ScaleneProfiler, fibonacci_path: Path):
+    """Test profiling with stacks enabled"""
+    result = await profiler.profile_script(
+        fibonacci_path,
+        stacks=True,
+        gpu=False
+    )
+    
+    assert isinstance(result, ProfileResult)
+
+
+@pytest.mark.asyncio
+async def test_profile_virtual_time(profiler: ScaleneProfiler, fibonacci_path: Path):
+    """Test profiling with virtual time"""
+    result = await profiler.profile_script(
+        fibonacci_path,
+        use_virtual_time=True,
+        gpu=False
+    )
+    
+    assert isinstance(result, ProfileResult)
+
+
+@pytest.mark.asyncio
+async def test_profile_no_leak_detector(profiler: ScaleneProfiler, fibonacci_path: Path):
+    """Test profiling with leak detector disabled"""
+    result = await profiler.profile_script(
+        fibonacci_path,
+        memory_leak_detector=False,
+        gpu=False
+    )
+    
+    assert isinstance(result, ProfileResult)
+
+
+@pytest.mark.asyncio
+async def test_profile_custom_sampling(profiler: ScaleneProfiler, fibonacci_path: Path):
+    """Test profiling with custom CPU sampling rate"""
+    result = await profiler.profile_script(
+        fibonacci_path,
+        cpu_sampling_rate=0.005,
+        gpu=False
+    )
+    
+    assert isinstance(result, ProfileResult)
+
+
+@pytest.mark.asyncio
+async def test_profile_profile_all(profiler: ScaleneProfiler, fibonacci_path: Path):
+    """Test profiling with profile_all enabled"""
+    result = await profiler.profile_script(
+        fibonacci_path,
+        profile_all=True,
+        gpu=False
+    )
+    
+    assert isinstance(result, ProfileResult)
+
+
+@pytest.mark.asyncio
+async def test_profile_with_profile_only(profiler: ScaleneProfiler, fibonacci_path: Path):
+    """Test profiling with profile_only filter"""
+    result = await profiler.profile_script(
+        fibonacci_path,
+        profile_only="test_*",
+        gpu=False
+    )
+    
+    assert isinstance(result, ProfileResult)
+
+
+@pytest.mark.asyncio
+async def test_profile_with_profile_exclude(profiler: ScaleneProfiler, fibonacci_path: Path):
+    """Test profiling with profile_exclude filter"""
+    result = await profiler.profile_script(
+        fibonacci_path,
+        profile_exclude="site_packages",
+        gpu=False
+    )
+    
+    assert isinstance(result, ProfileResult)
+
+
+@pytest.mark.asyncio
+async def test_profile_code_snippet(profiler: ScaleneProfiler):
+    """Test profiling a code snippet directly"""
+    code = """
+def fibonacci(n):
+    if n <= 1:
+        return n
+    return fibonacci(n-1) + fibonacci(n-2)
+
+result = fibonacci(10)
+"""
+    result = await profiler.profile_code(code, gpu=False)
+    
+    assert isinstance(result, ProfileResult)
+    assert result.profile_id
+
+
+@pytest.mark.asyncio
+async def test_profile_code_with_args(profiler: ScaleneProfiler):
+    """Test profiling code snippet with arguments"""
+    code = """
+x = 0
+for i in range(100):
+    x += i
+"""
+    result = await profiler.profile_code(
+        code,
+        cpu_sampling_rate=0.01,
+        gpu=False
+    )
+    
+    assert isinstance(result, ProfileResult)
+
+
+@pytest.mark.asyncio
+async def test_profile_custom_allocation_window(profiler: ScaleneProfiler, fibonacci_path: Path):
+    """Test profiling with custom allocation sampling window"""
+    result = await profiler.profile_script(
+        fibonacci_path,
+        allocation_sampling_window=5000000,
+        gpu=False
+    )
+    
+    assert isinstance(result, ProfileResult)
+
+
+@pytest.mark.asyncio
+async def test_profile_no_cpu_no_memory(profiler: ScaleneProfiler, fibonacci_path: Path):
+    """Test profiling with both CPU and memory disabled"""
+    # This should still create output (GPU-only or minimal data)
+    result = await profiler.profile_script(
+        fibonacci_path,
+        cpu=False,
+        memory=False,
+        gpu=False
+    )
+    
+    assert isinstance(result, ProfileResult)
+
