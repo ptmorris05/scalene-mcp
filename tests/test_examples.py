@@ -11,10 +11,9 @@ import subprocess
 import sys
 import time
 from pathlib import Path
-from typing import List, Tuple
 
 
-def run_example(example_path: Path, timeout: int = 10) -> Tuple[bool, str, float]:
+def run_example(example_path: Path, timeout: int = 10) -> tuple[bool, str, float]:
     """Run an example and return (success, output, elapsed_time)."""
     try:
         start = time.time()
@@ -37,11 +36,11 @@ def run_example(example_path: Path, timeout: int = 10) -> Tuple[bool, str, float
         return False, str(e), 0
 
 
-def check_example_content(example_path: Path) -> Tuple[bool, List[str]]:
+def check_example_content(example_path: Path) -> tuple[bool, list[str]]:
     """Check that example has proper documentation."""
     issues = []
     
-    with open(example_path, 'r') as f:
+    with open(example_path) as f:
         content = f.read()
     
     # Check for module docstring
@@ -79,7 +78,7 @@ def test_all_examples():
         # Check content
         content_ok, issues = check_example_content(example_path)
         if not content_ok:
-            print(f"❌ Content issues:")
+            print("❌ Content issues:")
             for issue in issues:
                 print(f"  - {issue}")
             all_passed = False
@@ -101,7 +100,7 @@ def test_all_examples():
             })
         elif is_missing_dep:
             # Missing optional dependency (not a test failure)
-            print(f"⊘ (optional dependency missing)")
+            print("⊘ (optional dependency missing)")
             results.append({
                 'name': example_path.name,
                 'status': 'SKIP',
@@ -109,7 +108,7 @@ def test_all_examples():
                 'reason': 'Optional dependency'
             })
         else:
-            print(f"❌ Error:")
+            print("❌ Error:")
             print(f"  {output[:200]}...")
             results.append({
                 'name': example_path.name,
@@ -145,11 +144,11 @@ def test_all_examples():
     
     # Consider skipped as OK (optional dependencies)
     if all_passed or skipped > 0:
-        print(f"Status: ✅ ALL REQUIRED TESTS PASSED")
+        print("Status: ✅ ALL REQUIRED TESTS PASSED")
         print(f"{'='*60}\n")
         return True
     else:
-        print(f"Status: ❌ SOME TESTS FAILED")
+        print("Status: ❌ SOME TESTS FAILED")
         print(f"{'='*60}\n")
         return False
 

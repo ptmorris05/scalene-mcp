@@ -237,7 +237,7 @@ class ScaleneProfiler:
             script_path = Path(f.name)
 
         try:
-            logger.info(f"Profiling code snippet...")
+            logger.info("Profiling code snippet...")
             return await self.profile_script(script_path, **kwargs)
         finally:
             # Clean up temporary script file

@@ -3,8 +3,6 @@
 import logging
 from unittest import mock
 
-import pytest
-
 from scalene_mcp.logging import configure_logging, get_logger
 
 

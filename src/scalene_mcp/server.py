@@ -3,11 +3,11 @@
 Main FastMCP server with tools, resources, and prompts for Scalene profiling.
 """
 
-import os
 from pathlib import Path
 from typing import Any
 
 from fastmcp import FastMCP
+
 from scalene_mcp.logging import get_logger
 
 from .analyzer import ProfileAnalyzer

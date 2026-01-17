@@ -3,9 +3,8 @@
 import logging
 from typing import Any, Literal
 
-from rich.logging import RichHandler
-
 import fastmcp.settings
+from rich.logging import RichHandler
 
 
 def get_logger(name: str) -> logging.Logger:
