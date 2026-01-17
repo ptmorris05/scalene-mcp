@@ -2,6 +2,120 @@
 
 A FastMCP v2 server providing LLMs with structured access to [Scalene](https://github.com/plasma-umass/scalene)'s comprehensive CPU, GPU, and memory profiling capabilities.
 
+## Installation
+
+### Prerequisites
+
+- Python 3.10+
+- uv (recommended) or pip
+
+### From Source
+
+```bash
+git clone https://github.com/plasma-umass/scalene-mcp.git
+cd scalene-mcp
+uv venv
+uv sync
+```
+
+### As a Package
+
+```bash
+pip install scalene-mcp
+```
+
+## Quick Start: Running the Server
+
+### Development Mode
+
+```bash
+# Using uv
+uv run scalene_mcp.server
+
+# Using pip
+python -m scalene_mcp.server
+```
+
+### Production Mode
+
+```bash
+python -m scalene_mcp.server
+```
+
+### Available Serving Methods (FastMCP)
+
+Scalene-MCP can be served in multiple ways using FastMCP's built-in serving capabilities:
+
+#### 1. **Standard Server (Default)**
+```bash
+# Starts an MCP-compatible server on stdio
+python -m scalene_mcp.server
+```
+
+#### 2. **With Claude Desktop**
+Configure in your `claude_desktop_config.json`:
+
+```json
+{
+  "mcpServers": {
+    "scalene": {
+      "command": "python",
+      "args": ["-m", "scalene_mcp.server"]
+    }
+  }
+}
+```
+
+Then restart Claude Desktop.
+
+#### 3. **With HTTP/SSE Endpoint**
+```bash
+# If using fastmcp with HTTP support
+uv run --help  # Check FastMCP documentation for HTTP serving
+```
+
+#### 4. **With Environment Variables**
+```bash
+# Configure via environment
+export SCALENE_PYTHON_EXECUTABLE=python3.11
+export SCALENE_TIMEOUT=30
+python -m scalene_mcp.server
+```
+
+#### 5. **Programmatically**
+```python
+from fastmcp import Server
+
+# Create and run server programmatically
+server = create_scalene_server()
+# Configure and start...
+```
+
+## Programmatic Usage
+
+Use Scalene-MCP directly in your Python code:
+
+```python
+from scalene_mcp.profiler import ScaleneProfiler
+import asyncio
+
+async def main():
+    profiler = ScaleneProfiler()
+    
+    # Profile a script
+    result = await profiler.profile_script(
+        "fibonacci.py",
+        cpu=True,
+        memory=True,
+        gpu=False
+    )
+    
+    print(f"Profiled in {result.summary.elapsed_time_sec:.2f}s")
+    print(f"Peak memory: {result.summary.max_footprint_mb:.1f}MB")
+    
+asyncio.run(main())
+```
+
 ## Overview
 
 Scalene-MCP transforms Scalene's powerful profiling output into an LLM-friendly format through a clean, minimal set of well-designed tools. Get detailed performance insights without images or excessive context overhead.
@@ -31,78 +145,6 @@ Scalene-MCP transforms Scalene's powerful profiling output into an LLM-friendly 
 - **Advanced analysis**: Stack traces, bottleneck identification, performance recommendations
 - **Profile comparison**: Track performance changes across runs
 - **LLM-optimized**: Structured JSON output, summaries before details, context-aware formatting
-
-## Installation
-
-### Prerequisites
-
-- Python 3.10+
-- uv (for development)
-
-### From Source
-
-```bash
-git clone https://github.com/plasma-umass/scalene-mcp.git
-cd scalene-mcp
-uv venv
-uv sync
-```
-
-### As a Package
-
-```bash
-pip install scalene-mcp
-```
-
-## Quick Start
-
-### Running the Server
-
-```bash
-# Development mode
-uv run scalene_mcp.server
-
-# Production mode
-python -m scalene_mcp.server
-```
-
-### Using with Claude
-
-Configure in your MCP client (e.g., Claude's `claude_desktop_config.json`):
-
-```json
-{
-  "mcpServers": {
-    "scalene": {
-      "command": "python",
-      "args": ["-m", "scalene_mcp.server"]
-    }
-  }
-}
-```
-
-### Example Usage
-
-```python
-from scalene_mcp.profiler import ScaleneProfiler
-import asyncio
-
-async def main():
-    profiler = ScaleneProfiler()
-    
-    # Profile a script
-    result = await profiler.profile_script(
-        "fibonacci.py",
-        cpu=True,
-        memory=True,
-        gpu=False
-    )
-    
-    print(f"Profiled in {result.summary.elapsed_time_sec:.2f}s")
-    print(f"Peak memory: {result.summary.max_footprint_mb:.1f}MB")
-    
-asyncio.run(main())
-```
 
 ## Available Tools
 
