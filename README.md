@@ -46,7 +46,7 @@ python -m scalene_mcp.server
 
 **Works seamlessly with:**
 - ✅ **[GitHub Copilot](SETUP_GITHUB_COPILOT.md)** - Direct integration
-- ✅ **[Claude Code](SETUP_CLAUDE.md)** - VSCode extension
+- ✅ **[Claude Code](SETUP_CLAUDE.md)** - Claude Code and Claude VSCode extension
 - ✅ **[Cursor](SETUP_CURSOR.md)** - All-in-one IDE
 - ✅ **Any MCP-compatible LLM client**
 
