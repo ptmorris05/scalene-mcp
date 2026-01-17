@@ -77,7 +77,7 @@ class FunctionMetrics(BaseModel):
     first_lineno: int
     last_lineno: int
 
-    total_cpu_percent: float = Field(0.0, ge=0, le=100)
+    total_cpu_percent: float = Field(0.0, ge=0, le=100.1)  # Allow slight float overflow
     total_memory_mb: float = Field(0.0, ge=0)
 
     lines: list[LineMetrics] = Field(default_factory=list)
@@ -89,7 +89,7 @@ class FileMetrics(BaseModel):
     model_config = ConfigDict(frozen=True)
 
     filename: str
-    total_cpu_percent: float = Field(0.0, ge=0, le=100)
+    total_cpu_percent: float = Field(0.0, ge=0, le=100.1)  # Allow slight float overflow
 
     functions: list[FunctionMetrics] = Field(default_factory=list)
     lines: list[LineMetrics] = Field(default_factory=list)

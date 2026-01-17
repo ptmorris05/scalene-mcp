@@ -92,62 +92,62 @@ class ScaleneProfiler:
                 "python",
                 "-m",
                 "scalene",
+                "run",  # Scalene v2+ requires 'run' subcommand
                 "--json",
                 "--outfile",
                 str(output_file),
                 "--no-browser",
             ]
 
-        # Profiling modes
-        if cpu_only:
-            cmd.append("--cpu-only")
-        if not cpu:
-            cmd.append("--no-cpu")
-        if not memory:
-            cmd.append("--no-memory")
-        if gpu:
-            cmd.append("--gpu")
+            # Profiling modes
+            if cpu_only:
+                cmd.append("--cpu-only")
+            if not cpu:
+                cmd.append("--no-cpu")
+            if not memory:
+                cmd.append("--no-memory")
+            if gpu:
+                cmd.append("--gpu")
 
-        # Advanced options
-        if stacks:
-            cmd.append("--stacks")
-        if use_virtual_time:
-            cmd.append("--use-virtual-time")
-        if not memory_leak_detector:
-            cmd.append("--no-memory-leak-detector")
-        if reduced_profile:
-            cmd.append("--reduced-profile")
+            # Advanced options
+            if stacks:
+                cmd.append("--stacks")
+            if use_virtual_time:
+                cmd.append("--use-virtual-time")
+            if not memory_leak_detector:
+                cmd.append("--no-memory-leak-detector")
+            if reduced_profile:
+                cmd.append("--reduced-profile")
 
-        # Sampling and thresholds
-        if cpu_sampling_rate != 0.01:
-            cmd.extend(["--cpu-sampling-rate", str(cpu_sampling_rate)])
-        if cpu_percent_threshold != 1.0:
-            cmd.extend(["--cpu-percent-threshold", str(cpu_percent_threshold)])
-        if malloc_threshold != 100:
-            cmd.extend(["--malloc-threshold", str(malloc_threshold)])
-        if allocation_sampling_window != 10485767:
-            cmd.extend(
-                ["--allocation-sampling-window", str(allocation_sampling_window)]
-            )
+            # Sampling and thresholds
+            if cpu_sampling_rate != 0.01:
+                cmd.extend(["--cpu-sampling-rate", str(cpu_sampling_rate)])
+            if cpu_percent_threshold != 1.0:
+                cmd.extend(["--cpu-percent-threshold", str(cpu_percent_threshold)])
+            if malloc_threshold != 100:
+                cmd.extend(["--malloc-threshold", str(malloc_threshold)])
+            if allocation_sampling_window != 10485767:
+                cmd.extend(
+                    ["--allocation-sampling-window", str(allocation_sampling_window)]
+                )
 
-        # Scope control
-        if profile_all:
-            cmd.append("--profile-all")
-        if profile_only:
-            cmd.extend(["--profile-only", profile_only])
-        if profile_exclude:
-            cmd.extend(["--profile-exclude", profile_exclude])
+            # Scope control
+            if profile_all:
+                cmd.append("--profile-all")
+            if profile_only:
+                cmd.extend(["--profile-only", profile_only])
+            if profile_exclude:
+                cmd.extend(["--profile-exclude", profile_exclude])
 
-        # Add script path
-        cmd.append(str(script_path))
+            # Add script path
+            cmd.append(str(script_path))
 
-        # Add script arguments
-        if script_args:
-            cmd.append("---")  # Scalene separator for script args
-            cmd.extend(script_args)
+            # Add script arguments
+            if script_args:
+                cmd.append("---")  # Scalene separator for script args
+                cmd.extend(script_args)
 
-        # Run profiler
-        try:
+            # Run profiler
             process = await asyncio.create_subprocess_exec(
                 *cmd,
                 stdout=asyncio.subprocess.PIPE,
