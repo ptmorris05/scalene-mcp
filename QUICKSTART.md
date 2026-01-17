@@ -84,20 +84,25 @@ Close and reopen VSCode.
 - `list_project_files()` - Lists Python files
 - `set_project_context()` - Override if needed
 
-### Profiling
-- `profile_script()` - Profile any Python script
-- `profile_code()` - Profile code snippet directly
+### Profiling (Unified Tool)
+- `profile(type="script", script_path="...", ...)` - Profile any Python script or code
+  - Use `type="script"` for script files
+  - Use `type="code"` for code snippets
 
-### Analysis
-- `get_cpu_hotspots()` - Find slow code
-- `get_memory_hotspots()` - Find memory hogs
-- `get_gpu_hotspots()` - Find GPU bottlenecks
-- `get_bottlenecks()` - Lines exceeding thresholds
-- `get_memory_leaks()` - Detect memory leaks
-- `compare_profiles()` - Compare before/after
-- `get_file_details()` - Line-by-line metrics
-- `get_function_summary()` - Function-level view
-- `get_recommendations()` - Optimization suggestions
+### Analysis (Single Mega Tool with 9 Modes)
+- `analyze(profile_id, metric_type="all")` - Comprehensive view
+- `analyze(profile_id, metric_type="cpu")` - Find slow code
+- `analyze(profile_id, metric_type="memory")` - Find memory hogs
+- `analyze(profile_id, metric_type="gpu")` - Find GPU bottlenecks
+- `analyze(profile_id, metric_type="bottlenecks")` - Lines exceeding thresholds
+- `analyze(profile_id, metric_type="leaks")` - Detect memory leaks
+- `analyze(profile_id, metric_type="file", filename="...")` - Line-by-line metrics
+- `analyze(profile_id, metric_type="functions")` - Function-level view
+- `analyze(profile_id, metric_type="recommendations")` - Optimization suggestions
+
+### Comparison & Storage
+- `compare_profiles(before_id, after_id)` - Compare before/after
+- `list_profiles()` - List all profiles in session
 - `list_profiles()` - See all profiles
 
 ---

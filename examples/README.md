@@ -229,13 +229,14 @@ from scalene_mcp.profiler import ScaleneProfiler
 async def profile_example():
     profiler = ScaleneProfiler()
     
-    result = await profiler.profile_script(
+    result = await profiler.profile(
+        type="script",
         script_path="examples/1_data_processing_pipeline.py",
-        cpu=True,
-        memory=True
+        include_memory=True,
+        include_gpu=False
     )
     
-    # Get hotspots
+    # Get hotspots via unified analyze() tool
     from scalene_mcp.analyzer import ProfileAnalyzer
     analyzer = ProfileAnalyzer(result)
     

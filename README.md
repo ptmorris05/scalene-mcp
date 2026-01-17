@@ -45,9 +45,9 @@ python -m scalene_mcp.server
 ## 🎯 Native Integration with VSCode LLM Editors
 
 **Works seamlessly with:**
-- ✅ **[GitHub Copilot](SETUP_VSCODE.md#github-copilot-in-vscode)** - Direct integration
-- ✅ **[Claude Code](SETUP_VSCODE.md#claude-code-vscode-extension)** - VSCode extension
-- ✅ **[Cursor](SETUP_VSCODE.md#cursor)** - All-in-one IDE
+- ✅ **[GitHub Copilot](SETUP_GITHUB_COPILOT.md)** - Direct integration
+- ✅ **[Claude Code](SETUP_CLAUDE.md)** - VSCode extension
+- ✅ **[Cursor](SETUP_CURSOR.md)** - All-in-one IDE
 - ✅ **Any MCP-compatible LLM client**
 
 ### Zero-Friction Setup (3 Steps)
@@ -78,9 +78,9 @@ python -m scalene_mcp.server
    }
    ```
    
-   **Manual - Claude Code / Cursor:** See [SETUP_VSCODE.md](SETUP_VSCODE.md) for editor-specific configs
+   **Manual - Claude Code / Cursor:** See editor-specific setup guides
 
-3. **Restart VSCode** and start profiling!
+3. **Restart VSCode/Cursor** and start profiling!
 
 ### Start Profiling Immediately
 
@@ -97,6 +97,11 @@ The LLM automatically:
 - 💡 Suggests optimizations
 
 **No path thinking. No manual configuration. Zero friction.**
+
+📚 **Editor-Specific Setup:**
+- [GitHub Copilot Setup](SETUP_GITHUB_COPILOT.md)
+- [Claude Code Setup](SETUP_CLAUDE.md)
+- [Cursor Setup](SETUP_CURSOR.md)
 
 📚 **Full docs:** [SETUP_VSCODE.md](SETUP_VSCODE.md) | [QUICKSTART.md](QUICKSTART.md) | [TOOLS_REFERENCE.md](TOOLS_REFERENCE.md)
 
@@ -161,15 +166,15 @@ async def main():
     profiler = ScaleneProfiler()
     
     # Profile a script
-    result = await profiler.profile_script(
-        "fibonacci.py",
-        cpu=True,
-        memory=True,
-        gpu=False
+    result = await profiler.profile(
+        type="script",
+        script_path="fibonacci.py",
+        include_memory=True,
+        include_gpu=False
     )
     
-    print(f"Profiled in {result.summary.elapsed_time_sec:.2f}s")
-    print(f"Peak memory: {result.summary.max_footprint_mb:.1f}MB")
+    print(f"Profile ID: {result['profile_id']}")
+    print(f"Peak memory: {result['summary'].get('total_memory_mb', 'N/A')}MB")
     
 asyncio.run(main())
 ```
@@ -204,50 +209,59 @@ Scalene-MCP transforms Scalene's powerful profiling output into an LLM-friendly 
 - **Profile comparison**: Track performance changes across runs
 - **LLM-optimized**: Structured JSON output, summaries before details, context-aware formatting
 
-## Available Tools
+## Available Tools (7 Consolidated Tools)
 
-### Core Profiling
+Scalene-MCP provides a clean, LLM-optimized set of 7 tools:
 
-- **profile_script**: Profile a Python script with customizable options
-- **profile_code**: Profile a code snippet directly
+### Discovery (3 tools)
+- **get_project_root()** - Auto-detect project structure
+- **list_project_files(pattern, max_depth)** - Find files by glob pattern
+- **set_project_context(project_root)** - Override auto-detection
 
-### Analysis
+### Profiling (1 unified tool)
+- **profile(type, script_path/code, ...)** - Profile scripts or code snippets
+  - `type="script"` for script profiling
+  - `type="code"` for code snippet profiling
 
-- **analyze_profile**: Get comprehensive analysis of a profile
-- **get_cpu_hotspots**: Find CPU-intensive lines
-- **get_memory_hotspots**: Identify memory-heavy code
-- **get_gpu_hotspots**: Locate GPU-intensive operations
-- **get_bottlenecks**: Identify performance bottlenecks by severity
-- **get_memory_leaks**: Detect potential memory leaks
-- **get_function_summary**: Aggregate metrics by function
+### Analysis (1 mega tool)
+- **analyze(profile_id, metric_type, ...)** - 9 analysis modes in one tool:
+  - `metric_type="all"` - Comprehensive analysis
+  - `metric_type="cpu"` - CPU hotspots
+  - `metric_type="memory"` - Memory hotspots
+  - `metric_type="gpu"` - GPU hotspots
+  - `metric_type="bottlenecks"` - Performance bottlenecks
+  - `metric_type="leaks"` - Memory leak detection
+  - `metric_type="file"` - File-level metrics
+  - `metric_type="functions"` - Function-level metrics
+  - `metric_type="recommendations"` - Optimization suggestions
 
-### Comparison & Storage
+### Comparison & Storage (2 tools)
+- **compare_profiles(before_id, after_id)** - Compare two profiles
+- **list_profiles()** - View all captured profiles
 
-- **compare_profiles**: Compare two profiles to identify changes
-- **list_profiles**: View stored profiles
-- **get_profile**: Retrieve a specific profile
-- **get_file_details**: Get per-file metrics and context
+**Full reference**: See [TOOLS_REFERENCE.md](TOOLS_REFERENCE.md)
 
 ## Configuration
 
 ### Profiling Options
 
-All profiling tools support these options:
+The unified `profile()` tool supports these options:
 
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|
-| `cpu` | bool | true | Profile CPU time |
-| `memory` | bool | true | Profile memory |
-| `gpu` | bool | false | Profile GPU usage |
-| `stacks` | bool | false | Collect stack traces |
-| `cpu_sampling_rate` | float | 0.01 | CPU sampling interval (seconds) |
+| `type` | str | required | "script" or "code" |
+| `script_path` | str | None | Required if type="script" |
+| `code` | str | None | Required if type="code" |
+| `include_memory` | bool | true | Profile memory |
+| `include_gpu` | bool | false | Profile GPU usage |
+| `cpu_only` | bool | false | Skip memory/GPU profiling |
+| `reduced_profile` | bool | false | Only report high-activity lines |
 | `cpu_percent_threshold` | float | 1.0 | Minimum CPU% to report |
 | `malloc_threshold` | int | 100 | Minimum allocation size (bytes) |
 | `profile_only` | str | "" | Profile only paths containing this |
 | `profile_exclude` | str | "" | Exclude paths containing this |
-| `reduced_profile` | bool | false | Only report high-activity lines |
 | `use_virtual_time` | bool | false | Use virtual time instead of wall time |
-| `memory_leak_detector` | bool | true | Enable leak detection |
+| `script_args` | list | [] | Command-line arguments for the script |
 
 ### Environment Variables
 
@@ -294,7 +308,11 @@ If you see `PermissionError` when profiling with GPU:
 
 ```python
 # Disable GPU profiling in test environments
-result = await profiler.profile_script("script.py", gpu=False)
+result = await profiler.profile(
+    type="script",
+    script_path="script.py",
+    include_gpu=False
+)
 ```
 
 ### Profile Not Found
@@ -303,12 +321,12 @@ Profiles are stored in memory during the server session. For persistence, implem
 
 ### Timeout Issues
 
-Adjust the timeout parameter:
+Adjust the timeout parameter (if using profiler directly):
 
 ```python
-result = await profiler.profile_script(
-    "slow_script.py",
-    timeout=30.0  # 30 seconds
+result = await profiler.profile(
+    type="script",
+    script_path="slow_script.py"
 )
 ```
 
@@ -518,6 +536,21 @@ This project follows strict code quality standards:
 ## Development Phases
 
 Current Status: **Phase 1.1 - Project Setup** ✓
+
+## Documentation
+
+**Editor Setup Guides:**
+- [GitHub Copilot Setup](SETUP_GITHUB_COPILOT.md) - Using Copilot Chat with VSCode
+- [Claude Code Setup](SETUP_CLAUDE.md) - Using Claude Code VSCode extension
+- [Cursor Setup](SETUP_CURSOR.md) - Using the Cursor IDE
+- [General VSCode Setup](SETUP_VSCODE.md) - General VSCode configuration
+
+**API & Usage:**
+- [Tools Reference](TOOLS_REFERENCE.md) - Complete API documentation (7 tools)
+- [Quick Start](QUICKSTART.md) - 3-step setup and basic workflows
+- [Examples](examples/README.md) - Real-world profiling examples
+
+## Development Roadmap
 
 1. **Phase 1:** Project Setup & Infrastructure ✓
 2. **Phase 2:** Core Data Models (In Progress)

@@ -188,12 +188,14 @@ server.tool(set_project_context)
 
 
 # ============================================================================
-# Profiling Tools
+# Profiling Tool
 # ============================================================================
 
 
-async def profile_script(
-    script_path: str,
+async def profile(
+    type: str,
+    script_path: str | None = None,
+    code: str | None = None,
     cpu_only: bool = False,
     include_memory: bool = True,
     include_gpu: bool = False,
@@ -205,14 +207,16 @@ async def profile_script(
     malloc_threshold: int = 100,
     script_args: list[str] | None = None,
 ) -> dict[str, Any]:
-    """Profile a Python script using Scalene.
+    """Profile Python code using Scalene.
     
     Args:
-        script_path: Path to Python script (absolute or relative to project root)
-        cpu_only: Measure CPU time only
+        type: "script" (profile a file) or "code" (profile code snippet)
+        script_path: Required if type="script". Path to Python script
+        code: Required if type="code". Python code to execute
+        cpu_only: Skip memory/GPU profiling
         include_memory: Profile memory allocations
         include_gpu: Profile GPU usage (requires NVIDIA GPU)
-        reduced_profile: Show only lines with >1% CPU or >100 allocations
+        reduced_profile: Show only lines >1% CPU or >100 allocations
         profile_only: Comma-separated paths to include (e.g., "myapp")
         profile_exclude: Comma-separated paths to exclude (e.g., "test,vendor")
         use_virtual_time: Measure CPU time excluding I/O wait
@@ -222,64 +226,37 @@ async def profile_script(
         
     Returns: {profile_id, summary, text_summary}
     """
-    path = _resolve_path(script_path)
-    if not path.exists():
-        raise FileNotFoundError(f"Script not found: {path}")
-
-    # Run profiler
-    profile = await profiler.profile_script(
-        path,
-        cpu_only=cpu_only,
-        memory=include_memory and not cpu_only,
-        gpu=include_gpu,
-        reduced_profile=reduced_profile,
-        profile_only=profile_only,
-        profile_exclude=profile_exclude,
-        use_virtual_time=use_virtual_time,
-        cpu_percent_threshold=cpu_percent_threshold,
-        malloc_threshold=malloc_threshold,
-        script_args=script_args or [],
-    )
-
-    # Store profile
-    profile_id = profile.profile_id or f"profile_{len(recent_profiles)}"
-    recent_profiles[profile_id] = profile
-
-    # Return summary
-    return {
-        "profile_id": profile_id,
-        "summary": profile.summary.model_dump(),
-        "text_summary": analyzer.generate_summary(profile),
-    }
-
-
-# Register tool
-server.tool(profile_script)
-
-
-async def profile_code(
-    code: str,
-    cpu_only: bool = False,
-    include_memory: bool = True,
-    reduced_profile: bool = False,
-) -> dict[str, Any]:
-    """Profile Python code snippet without saving to file.
-    
-    Args:
-        code: Python code to execute and profile
-        cpu_only: Measure CPU time only
-        include_memory: Profile memory allocations
-        reduced_profile: Show only significant lines
+    if type == "script":
+        if not script_path:
+            raise ValueError("script_path required when type='script'")
+        path = _resolve_path(script_path)
+        if not path.exists():
+            raise FileNotFoundError(f"Script not found: {path}")
         
-    Returns: {profile_id, summary, text_summary}
-    """
-    # Run profiler
-    profile = await profiler.profile_code(
-        code,
-        cpu_only=cpu_only,
-        memory=include_memory and not cpu_only,
-        reduced_profile=reduced_profile,
-    )
+        profile = await profiler.profile_script(
+            path,
+            cpu_only=cpu_only,
+            memory=include_memory and not cpu_only,
+            gpu=include_gpu,
+            reduced_profile=reduced_profile,
+            profile_only=profile_only,
+            profile_exclude=profile_exclude,
+            use_virtual_time=use_virtual_time,
+            cpu_percent_threshold=cpu_percent_threshold,
+            malloc_threshold=malloc_threshold,
+            script_args=script_args or [],
+        )
+    elif type == "code":
+        if not code:
+            raise ValueError("code required when type='code'")
+        profile = await profiler.profile_code(
+            code,
+            cpu_only=cpu_only,
+            memory=include_memory and not cpu_only,
+            reduced_profile=reduced_profile,
+        )
+    else:
+        raise ValueError(f"type must be 'script' or 'code', got: {type}")
 
     # Store profile
     profile_id = profile.profile_id or f"profile_{len(recent_profiles)}"
@@ -292,163 +269,138 @@ async def profile_code(
     }
 
 
-server.tool(profile_code)
+server.tool(profile)
 
 
-async def analyze_profile(
+
+# ============================================================================
+# Analysis Tool (Mega Tool)
+# ============================================================================
+
+
+async def analyze(
     profile_id: str,
-    focus: str = "all",
+    metric_type: str = "all",
     top_n: int = 10,
     cpu_threshold: float = 5.0,
     memory_threshold_mb: float = 10.0,
+    filename: str | None = None,
 ) -> dict[str, Any]:
-    """Analyze a profile for bottlenecks and recommendations.
+    """Analyze profiling data with flexible analysis types.
     
     Args:
-        profile_id: ID from profile_script or profile_code
-        focus: "cpu", "memory", "gpu", or "all"
-        top_n: Number of hotspots to return
-        cpu_threshold: Minimum CPU % to flag as bottleneck
-        memory_threshold_mb: Minimum MB to flag as bottleneck
+        profile_id: Profile ID from profile()
+        metric_type: "all", "cpu", "memory", "gpu", "bottlenecks", "leaks", "file", "functions", "recommendations"
+        top_n: Number of items to return (for rankings)
+        cpu_threshold: Minimum CPU % to flag bottleneck
+        memory_threshold_mb: Minimum MB to flag bottleneck
+        filename: Required if metric_type="file", file to analyze
         
-    Returns: {focus, hotspots, bottlenecks, recommendations, summary}
+    Returns: {metric_type, data, summary} structure varies by metric_type
     """
     if profile_id not in recent_profiles:
         raise ValueError(f"Profile not found: {profile_id}")
 
     profile = recent_profiles[profile_id]
-    analysis = analyzer.analyze(
-        profile,
-        top_n=top_n,
-        cpu_threshold=cpu_threshold,
-        memory_threshold_mb=memory_threshold_mb,
-        focus=focus,
-    )
-
-    return analysis.model_dump()
-
-
-server.tool(analyze_profile)
-
-
-async def get_cpu_hotspots(
-    profile_id: str,
-    top_n: int = 10,
-) -> list[dict[str, Any]]:
-    """Get lines using the most CPU time.
     
-    Args:
-        profile_id: ID from profile_script or profile_code
-        top_n: Number of hotspots to return
-        
-    Returns: [{type, filename, lineno, line, cpu_percent, severity}, ...]
-    """
-    if profile_id not in recent_profiles:
-        raise ValueError(f"Profile not found: {profile_id}")
-
-    profile = recent_profiles[profile_id]
-    hotspots = analyzer.get_top_cpu_hotspots(profile, n=top_n)
-
-    return [hotspot.model_dump() for hotspot in hotspots]
-
-
-server.tool(get_cpu_hotspots)
-
-
-async def get_memory_hotspots(
-    profile_id: str,
-    top_n: int = 10,
-) -> list[dict[str, Any]]:
-    """Get lines allocating the most memory.
+    if metric_type == "all":
+        # Comprehensive analysis
+        analysis = analyzer.analyze(
+            profile,
+            top_n=top_n,
+            cpu_threshold=cpu_threshold,
+            memory_threshold_mb=memory_threshold_mb,
+            focus="all",
+        )
+        return {
+            "metric_type": "all",
+            "data": analysis.model_dump(),
+        }
     
-    Args:
-        profile_id: ID from profile_script or profile_code
-        top_n: Number of hotspots to return
-        
-    Returns: [{type, filename, lineno, line, memory_mb, severity}, ...]
-    """
-    if profile_id not in recent_profiles:
-        raise ValueError(f"Profile not found: {profile_id}")
-
-    profile = recent_profiles[profile_id]
-    hotspots = analyzer.get_top_memory_hotspots(profile, n=top_n)
-
-    return [hotspot.model_dump() for hotspot in hotspots]
-
-
-server.tool(get_memory_hotspots)
-
-
-async def get_gpu_hotspots(
-    profile_id: str,
-    top_n: int = 10,
-) -> list[dict[str, Any]]:
-    """Get lines using the most GPU time (CUDA only).
+    elif metric_type == "cpu":
+        # CPU hotspots
+        hotspots = analyzer.get_top_cpu_hotspots(profile, n=top_n)
+        return {
+            "metric_type": "cpu",
+            "data": [h.model_dump() for h in hotspots],
+        }
     
-    Args:
-        profile_id: ID from profile_script or profile_code
-        top_n: Number of hotspots to return
-        
-    Returns: [{type, filename, lineno, line, gpu_percent}, ...]
-    """
-    if profile_id not in recent_profiles:
-        raise ValueError(f"Profile not found: {profile_id}")
-
-    profile = recent_profiles[profile_id]
-    hotspots = analyzer.get_top_gpu_hotspots(profile, n=top_n)
-
-    return [hotspot.model_dump() for hotspot in hotspots]
-
-
-server.tool(get_gpu_hotspots)
-
-
-async def get_bottlenecks(
-    profile_id: str,
-    cpu_threshold: float = 5.0,
-    memory_threshold_mb: float = 10.0,
-) -> dict[str, list[dict[str, Any]]]:
-    """Get lines exceeding performance thresholds.
+    elif metric_type == "memory":
+        # Memory hotspots
+        hotspots = analyzer.get_top_memory_hotspots(profile, n=top_n)
+        return {
+            "metric_type": "memory",
+            "data": [h.model_dump() for h in hotspots],
+        }
     
-    Args:
-        profile_id: ID from profile_script or profile_code
-        cpu_threshold: Minimum CPU % to flag as bottleneck
-        memory_threshold_mb: Minimum MB to flag as bottleneck
-        
-    Returns: {cpu: [...], memory: [...], gpu: [...]}
-    """
-    if profile_id not in recent_profiles:
-        raise ValueError(f"Profile not found: {profile_id}")
-
-    profile = recent_profiles[profile_id]
-    return analyzer.identify_bottlenecks(
-        profile,
-        cpu_threshold=cpu_threshold,
-        memory_threshold_mb=memory_threshold_mb,
-    )
-
-
-server.tool(get_bottlenecks)
-
-
-async def get_memory_leaks(
-    profile_id: str,
-) -> list[dict[str, Any]]:
-    """Detect likely memory leaks (growing allocations).
+    elif metric_type == "gpu":
+        # GPU hotspots
+        hotspots = analyzer.get_top_gpu_hotspots(profile, n=top_n)
+        return {
+            "metric_type": "gpu",
+            "data": [h.model_dump() for h in hotspots],
+        }
     
-    Args:
-        profile_id: ID from profile_script or profile_code
-        
-    Returns: [{filename, lineno, line, velocity_mb_per_sec, likelihood_pct}, ...]
-    """
-    if profile_id not in recent_profiles:
-        raise ValueError(f"Profile not found: {profile_id}")
+    elif metric_type == "bottlenecks":
+        # Lines exceeding thresholds
+        bottlenecks = analyzer.identify_bottlenecks(
+            profile,
+            cpu_threshold=cpu_threshold,
+            memory_threshold_mb=memory_threshold_mb,
+        )
+        return {
+            "metric_type": "bottlenecks",
+            "data": bottlenecks,
+        }
+    
+    elif metric_type == "leaks":
+        # Memory leaks
+        leaks = [leak.model_dump() for leak in profile.summary.detected_leaks]
+        return {
+            "metric_type": "leaks",
+            "data": leaks,
+        }
+    
+    elif metric_type == "file":
+        # File-level metrics
+        if not filename:
+            raise ValueError("filename required when metric_type='file'")
+        if filename not in profile.files:
+            available = list(profile.files.keys())
+            raise ValueError(
+                f"File not in profile: {filename}. Available: {', '.join(available)}"
+            )
+        file_metrics = profile.files[filename]
+        return {
+            "metric_type": "file",
+            "filename": filename,
+            "data": file_metrics.model_dump(),
+        }
+    
+    elif metric_type == "functions":
+        # Function-level metrics
+        functions = analyzer.get_function_summary(profile, top_n=top_n)
+        return {
+            "metric_type": "functions",
+            "data": functions,
+        }
+    
+    elif metric_type == "recommendations":
+        # Optimization recommendations
+        recommendations = analyzer.generate_recommendations(profile)
+        return {
+            "metric_type": "recommendations",
+            "data": recommendations,
+        }
+    
+    else:
+        raise ValueError(
+            f"Unknown metric_type: {metric_type}. "
+            "Must be: all, cpu, memory, gpu, bottlenecks, leaks, file, functions, recommendations"
+        )
 
-    profile = recent_profiles[profile_id]
-    return [leak.model_dump() for leak in profile.summary.detected_leaks]
 
-
-server.tool(get_memory_leaks)
+server.tool(analyze)
 
 
 async def compare_profiles(
@@ -478,36 +430,6 @@ async def compare_profiles(
 server.tool(compare_profiles)
 
 
-async def get_file_details(
-    profile_id: str,
-    filename: str,
-) -> dict[str, Any]:
-    """Get all metrics for a specific file.
-    
-    Args:
-        profile_id: ID from profile_script or profile_code
-        filename: Path to file to analyze
-        
-    Returns: {filename, lines, total_cpu_percent, total_memory_mb}
-    """
-    if profile_id not in recent_profiles:
-        raise ValueError(f"Profile not found: {profile_id}")
-
-    profile = recent_profiles[profile_id]
-
-    if filename not in profile.files:
-        available = list(profile.files.keys())
-        raise ValueError(
-            f"File not in profile: {filename}. Available: {', '.join(available)}"
-        )
-
-    file_metrics = profile.files[filename]
-    return file_metrics.model_dump()
-
-
-server.tool(get_file_details)
-
-
 async def list_profiles() -> list[str]:
     """List all captured profiles in this session.
     
@@ -517,48 +439,6 @@ async def list_profiles() -> list[str]:
 
 
 server.tool(list_profiles)
-
-
-async def get_recommendations(
-    profile_id: str,
-) -> list[str]:
-    """Get actionable optimization suggestions.
-    
-    Args:
-        profile_id: ID from profile_script or profile_code
-        
-    Returns: [recommendation_text, ...]
-    """
-    if profile_id not in recent_profiles:
-        raise ValueError(f"Profile not found: {profile_id}")
-
-    profile = recent_profiles[profile_id]
-    return analyzer.generate_recommendations(profile)
-
-
-server.tool(get_recommendations)
-
-
-async def get_function_summary(
-    profile_id: str,
-    top_n: int = 10,
-) -> list[dict[str, Any]]:
-    """Get function-level performance metrics.
-    
-    Args:
-        profile_id: ID from profile_script or profile_code
-        top_n: Number of functions to return
-        
-    Returns: [{function_name, filename, start_line, total_cpu_percent, total_memory_mb}, ...]
-    """
-    if profile_id not in recent_profiles:
-        raise ValueError(f"Profile not found: {profile_id}")
-
-    profile = recent_profiles[profile_id]
-    return analyzer.get_function_summary(profile, top_n=top_n)
-
-
-server.tool(get_function_summary)
 
 
 def main() -> None:

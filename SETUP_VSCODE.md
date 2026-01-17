@@ -169,48 +169,31 @@ The Scalene server provides these tools:
   - Explicitly set the project root (if auto-detection fails)
   - Example: `set_project_context("/home/user/myapp")`
 
-#### Profiling
+#### Profiling (Unified Tool)
 
-- **`profile_script(script_path, ...options)`**
-  - Profiles a standalone Python script
+- **`profile(type, script_path=None, code=None, ...options)`**
+  - Single tool for both scripts and code snippets
+  - Use `type="script"` with `script_path` parameter
+  - Use `type="code"` with `code` parameter
   - `script_path` can be relative (e.g., `"main.py"`) or absolute
 
-- **`profile_code(code, ...options)`**
-  - Profiles Python code directly (no file needed)
-  - Useful for snippets or inline code
+#### Analysis (Mega Tool)
 
-#### Analysis
-
-- **`analyze_profile(profile_id, ...options)`**
-  - Comprehensive analysis of a profile
-  - Shows bottlenecks, memory issues, recommendations
-
-- **`get_cpu_hotspots(profile_id, top_n)`**
-  - Lists lines using most CPU time
-
-- **`get_memory_hotspots(profile_id, top_n)`**
-  - Lists lines allocating most memory
-
-- **`get_gpu_hotspots(profile_id, top_n)`**
-  - Lists lines using GPU (NVIDIA CUDA only)
-
-- **`get_bottlenecks(profile_id, thresholds)`**
-  - Lines exceeding performance thresholds
-
-- **`get_memory_leaks(profile_id)`**
+- **`analyze(profile_id, metric_type, ...options)`**
+  - Single tool with 9 analysis modes:
+  - `metric_type="all"` - Comprehensive analysis
+  - `metric_type="cpu"` - CPU hotspots
+  - `metric_type="memory"` - Memory hotspots
+  - `metric_type="gpu"` - GPU usage
+  - `metric_type="bottlenecks"` - Performance thresholds
+  - `metric_type="leaks"` - Memory leak detection
+  - `metric_type="file"` - File-level metrics
+  - `metric_type="functions"` - Function-level metrics
+  - `metric_type="recommendations"` - Optimization suggestions
   - Detects potential memory leaks
 
 - **`compare_profiles(before_id, after_id)`**
   - Compares two profiles to measure optimization impact
-
-- **`get_file_details(profile_id, filename)`**
-  - Line-by-line metrics for a specific file
-
-- **`get_function_summary(profile_id, top_n)`**
-  - Function-level performance summary
-
-- **`get_recommendations(profile_id)`**
-  - AI-generated optimization suggestions
 
 - **`list_profiles()`**
   - Lists all profiles captured in this session
@@ -224,8 +207,8 @@ The Scalene server provides these tools:
 **LLM does:**
 - Calls `get_project_root()` → learns project is at `/home/user/myapp`
 - Calls `list_project_files("*.py")` → finds `src/main.py`
-- Calls `profile_script("src/main.py")` → profiles it
-- Calls `get_cpu_hotspots(profile_id)` → finds CPU-intensive lines
+- Calls `profile(type="script", script_path="src/main.py")` → profiles it
+- Calls `analyze(profile_id, metric_type="cpu")` → finds CPU-intensive lines
 - Shows you the results with context
 
 #### Example 2: Debugging Performance Issues
@@ -235,8 +218,8 @@ The Scalene server provides these tools:
 **LLM does:**
 - Auto-detects your project
 - Profiles your main script
-- Calls `get_memory_leaks(profile_id)` → finds issues
-- Calls `get_recommendations(profile_id)` → gets suggestions
+- Calls `analyze(profile_id, metric_type="leaks")` → finds issues
+- Calls `analyze(profile_id, metric_type="recommendations")` → gets suggestions
 - Explains what's wrong and how to fix it
 
 #### Example 3: Optimization Validation
@@ -257,15 +240,15 @@ The server automatically handles paths intelligently:
 
 ### Relative Paths
 ```
-profile_script("main.py")
-profile_script("src/utils.py")
-profile_script("tests/test_main.py")
+profile(type="script", script_path="main.py")
+profile(type="script", script_path="src/utils.py")
+profile(type="script", script_path="tests/test_main.py")
 ```
 → Resolved relative to detected project root
 
 ### Absolute Paths
 ```
-profile_script("/home/user/myapp/main.py")
+profile(type="script", script_path="/home/user/myapp/main.py")
 ```
 → Used as-is
 
@@ -303,7 +286,7 @@ The server detects project root by looking for:
 
 ### "Script Not Found"
 
-**Problem:** Profile_script says file doesn't exist
+**Problem:** Profile says file doesn't exist
 
 **Solutions:**
 1. Check file exists: Ask LLM to `list_project_files("*.py")`
@@ -313,7 +296,7 @@ The server detects project root by looking for:
 
 ### "No GPU Detected"
 
-**Problem:** `get_gpu_hotspots()` returns empty results
+**Problem:** `analyze(profile_id, metric_type="gpu")` returns empty results
 
 **Solution:** This is expected if:
 - You don't have NVIDIA GPU
