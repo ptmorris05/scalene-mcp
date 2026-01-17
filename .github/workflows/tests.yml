@@ -22,20 +22,31 @@ jobs:
         python-version: ${{ matrix.python-version }}
         cache: 'pip'
 
+    - name: Install uv
+      run: pip install --upgrade pip && pip install uv
+
+    - name: Create virtual environment
+      run: uv venv .venv
+
     - name: Install dependencies
       run: |
-        python -m pip install --upgrade pip
-        pip install uv
+        . .venv/bin/activate
         uv pip install -e ".[dev]"
 
     - name: Lint with ruff
-      run: uv run ruff check src tests
+      run: |
+        . .venv/bin/activate
+        ruff check src tests
 
     - name: Type check with mypy
-      run: uv run mypy src/scalene_mcp --ignore-missing-imports || true
+      run: |
+        . .venv/bin/activate
+        mypy src/scalene_mcp --ignore-missing-imports || true
 
     - name: Run tests with pytest
-      run: uv run pytest tests/ -v --cov=src/scalene_mcp --cov-report=xml --cov-report=term-missing
+      run: |
+        . .venv/bin/activate
+        pytest tests/ -v --cov=src/scalene_mcp --cov-report=xml --cov-report=term-missing
 
     - name: Upload coverage reports to Codecov
       uses: codecov/codecov-action@v3
