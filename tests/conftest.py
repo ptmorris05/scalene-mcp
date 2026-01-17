@@ -87,3 +87,26 @@ def memory_heavy_script(scripts_dir: Path) -> Path:
 def leaky_script(scripts_dir: Path) -> Path:
     """Path to script with memory leaks."""
     return scripts_dir / "leaky.py"
+
+
+# ============================================================================
+# Profile File Path Fixtures (for analyzer/parser testing)
+# ============================================================================
+
+
+@pytest.fixture
+def simple_cpu_profile_json(profiles_dir: Path) -> Path:
+    """Path to simple CPU profile JSON file."""
+    return profiles_dir / "simple_cpu.json"
+
+
+@pytest.fixture
+def memory_leak_profile_json(profiles_dir: Path) -> Path:
+    """Path to memory leak profile JSON file."""
+    return profiles_dir / "memory_leak.json"
+
+
+@pytest.fixture
+def memory_heavy_profile_json(profiles_dir: Path) -> Path:
+    """Path to memory-heavy profile JSON file."""
+    return profiles_dir / "memory_heavy.json"
