@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 import time
 from pathlib import Path
+from typing import Any
 
 from scalene_mcp.models import (
     FileMetrics,
@@ -63,7 +64,7 @@ class ProfileParser:
         )
 
     def _parse_file_metrics(
-        self, filename: str, file_data: dict
+        self, filename: str, file_data: dict[str, Any]
     ) -> FileMetrics:
         """Parse metrics for a single file."""
         # Parse lines
@@ -112,7 +113,7 @@ class ProfileParser:
             leaks=leaks,
         )
 
-    def _parse_line_metrics(self, line_data: dict) -> LineMetrics:
+    def _parse_line_metrics(self, line_data: dict[str, Any]) -> LineMetrics:
         """Parse metrics for a single line."""
         return LineMetrics(
             lineno=line_data.get("lineno", 0),
@@ -133,7 +134,7 @@ class ProfileParser:
             loop_end=line_data.get("loop_end"),
         )
 
-    def _parse_function_metrics(self, func_data: dict) -> FunctionMetrics:
+    def _parse_function_metrics(self, func_data: dict[str, Any]) -> FunctionMetrics:
         """Parse metrics for a single function."""
         return FunctionMetrics(
             name=func_data.get("name", "unknown"),
@@ -149,7 +150,7 @@ class ProfileParser:
         )
 
     def _create_summary(
-        self, profile_id: str, data: dict, files: dict[str, FileMetrics]
+        self, profile_id: str, data: dict[str, Any], files: dict[str, FileMetrics]
     ) -> ProfileSummary:
         """Create a high-level summary from parsed data."""
         # Collect all leaks

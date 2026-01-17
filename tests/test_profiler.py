@@ -3,11 +3,12 @@
 from __future__ import annotations
 
 import asyncio
-import pytest
 from pathlib import Path
 
-from scalene_mcp.profiler import ScaleneProfiler
+import pytest
+
 from scalene_mcp.models import ProfileResult
+from scalene_mcp.profiler import ScaleneProfiler
 
 
 @pytest.fixture

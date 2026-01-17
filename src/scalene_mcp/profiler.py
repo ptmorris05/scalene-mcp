@@ -5,6 +5,7 @@ from __future__ import annotations
 import asyncio
 import tempfile
 from pathlib import Path
+from typing import Any
 
 from scalene_mcp.models import ProfileResult
 from scalene_mcp.parser import ProfileParser
@@ -196,7 +197,7 @@ class ScaleneProfiler:
     async def profile_code(
         self,
         code: str,
-        **kwargs,
+        **kwargs: Any,
     ) -> ProfileResult:
         """
         Profile a code snippet.

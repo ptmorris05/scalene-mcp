@@ -3,11 +3,12 @@
 from __future__ import annotations
 
 import json
-import pytest
 from pathlib import Path
 
+import pytest
+
+from scalene_mcp.models import FileMetrics, LineMetrics, MemoryLeak, ProfileResult
 from scalene_mcp.parser import ProfileParser
-from scalene_mcp.models import ProfileResult, FileMetrics, LineMetrics, MemoryLeak
 
 
 @pytest.fixture
