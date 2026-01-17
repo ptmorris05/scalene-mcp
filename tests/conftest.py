@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 from pathlib import Path
 
 import pytest
@@ -51,13 +52,23 @@ def server() -> FastMCP:
 
 @pytest.fixture
 def sample_profile_simple(profiles_dir: Path) -> dict:
-    """Simple profile data for basic tests."""
-    # Will be populated in Phase 1.2
-    return {
-        "elapsed_time_seconds": 1.234,
-        "files": {},
-        "max_footprint_mb": 50.0,
-    }
+    """Simple CPU profile data."""
+    with open(profiles_dir / "simple_cpu.json") as f:
+        return json.load(f)
+
+
+@pytest.fixture
+def sample_profile_leak(profiles_dir: Path) -> dict:
+    """Profile with memory leaks."""
+    with open(profiles_dir / "memory_leak.json") as f:
+        return json.load(f)
+
+
+@pytest.fixture
+def sample_profile_memory_heavy(profiles_dir: Path) -> dict:
+    """Memory-intensive profile data."""
+    with open(profiles_dir / "memory_heavy.json") as f:
+        return json.load(f)
 
 
 @pytest.fixture
