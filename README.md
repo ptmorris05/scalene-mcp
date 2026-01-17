@@ -1,6 +1,6 @@
 # Scalene-MCP
 
-A FastMCP v2 server providing LLMs with structured access to [Scalene](https://github.com/plasma-umass/scalene)'s comprehensive CPU, GPU, and memory profiling capabilities.
+A FastMCP v2 server providing LLMs with structured access to [Scalene](https://github.com/plasma-umass/scalene)'s comprehensive CPU, GPU, and memory profiling capabilities for Python code and C/C++ bindings.
 
 ## Installation
 
