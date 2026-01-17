@@ -8,7 +8,7 @@ import pytest
 from fastmcp import FastMCP
 
 # Import the actual MCP server instance
-from scalene_mcp import mcp
+from scalene_mcp import server as mcp_server
 
 # ============================================================================
 # Directory Fixtures
@@ -41,7 +41,7 @@ def scripts_dir(fixtures_dir: Path) -> Path:
 @pytest.fixture
 def server() -> FastMCP:
     """FastMCP server instance for testing."""
-    return mcp
+    return mcp_server
 
 
 # ============================================================================

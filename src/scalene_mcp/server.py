@@ -6,10 +6,10 @@ Main FastMCP server with tools, resources, and prompts for Scalene profiling.
 from fastmcp import FastMCP
 
 # Create the MCP server
-mcp = FastMCP("Scalene Profiler")
+server = FastMCP("Scalene Profiler")
 
 
-@mcp.tool
+@server.tool
 async def profile(
     script_path: str | None = None,
     code: str | None = None,
@@ -41,7 +41,7 @@ async def profile(
 
 def main() -> None:
     """Entry point for running the server."""
-    mcp.run()
+    server.run()
 
 
 if __name__ == "__main__":
