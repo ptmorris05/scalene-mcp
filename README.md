@@ -42,6 +42,57 @@ python -m scalene_mcp.server
 python -m scalene_mcp.server
 ```
 
+## Integration with VSCode LLM Editors
+
+Integrate Scalene MCP with **GitHub Copilot**, **Claude Code**, or **Cursor** for seamless Python profiling:
+
+### 3-Step Setup
+
+1. **Install**
+   ```bash
+   pip install scalene-mcp
+   ```
+
+2. **Configure** (Choose your editor)
+   
+   **GitHub Copilot:**
+   ```json
+   // .vscode/settings.json
+   {
+     "github.copilot.chat.mcp.servers": {
+       "scalene": {
+         "command": "uv",
+         "args": ["run", "-m", "scalene_mcp.server"]
+       }
+     }
+   }
+   ```
+   
+   **Claude Code / Cursor:** See [SETUP_VSCODE.md](SETUP_VSCODE.md) for configuration
+   
+   **Or use the automated setup script:**
+   ```bash
+   python scripts/setup_vscode.py
+   ```
+
+3. **Restart VSCode** and start profiling!
+
+### Usage Example
+
+Open any Python project in VSCode and ask your LLM:
+
+```
+"Profile main.py and tell me the bottlenecks"
+```
+
+The LLM will:
+- Auto-detect your project root
+- Find and profile your script
+- Analyze CPU, memory, and GPU usage
+- Provide optimization recommendations
+
+See **[SETUP_VSCODE.md](SETUP_VSCODE.md)** for detailed setup instructions and examples.
+
 ### Available Serving Methods (FastMCP)
 
 Scalene-MCP can be served in multiple ways using FastMCP's built-in serving capabilities:

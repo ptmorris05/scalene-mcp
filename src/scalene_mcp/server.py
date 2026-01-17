@@ -3,6 +3,7 @@
 Main FastMCP server with tools, resources, and prompts for Scalene profiling.
 """
 
+import os
 from pathlib import Path
 from typing import Any
 
@@ -27,7 +28,168 @@ comparator = ProfileComparator()
 # Store recent profiles (in-memory for now)
 recent_profiles: dict[str, ProfileResult] = {}
 
+# Project context (auto-detected or explicitly set)
+_project_root: Path | None = None
+
 logger = get_logger(__name__)
+
+
+def _detect_project_root(start_path: Path | None = None) -> Path:
+    """Auto-detect project root by looking for common markers.
+    
+    Checks for: .git, pyproject.toml, setup.py, package.json, Makefile
+    Falls back to current working directory if no markers found.
+    """
+    search_path = start_path or Path.cwd()
+    if search_path.is_file():
+        search_path = search_path.parent
+    
+    markers = {".git", "pyproject.toml", "setup.py", "package.json", "Makefile", "GNUmakefile"}
+    
+    # Search up directory tree
+    for current in [search_path, *search_path.parents]:
+        if any((current / marker).exists() for marker in markers):
+            return current
+    
+    # Fallback to cwd
+    return Path.cwd()
+
+
+def _get_project_root() -> Path:
+    """Get the current project root (auto-detected or explicitly set)."""
+    global _project_root
+    if _project_root is None:
+        _project_root = _detect_project_root()
+    return _project_root
+
+
+def _resolve_path(relative_or_absolute: str) -> Path:
+    """Resolve a path, making it absolute relative to project root if needed."""
+    path = Path(relative_or_absolute)
+    if path.is_absolute():
+        return path
+    return _get_project_root() / path
+
+
+# ============================================================================
+# Discovery Tools - Help LLM understand the project context
+# ============================================================================
+
+
+async def get_project_root() -> dict[str, str]:
+    """Get the detected project root and structure type.
+    
+    Returns: {root, type, markers_found}
+    """
+    root = _get_project_root()
+    
+    # Detect project type
+    project_type = "unknown"
+    markers_found = []
+    
+    if (root / "pyproject.toml").exists():
+        project_type = "python"
+        markers_found.append("pyproject.toml")
+    if (root / "setup.py").exists():
+        project_type = "python"
+        markers_found.append("setup.py")
+    if (root / "package.json").exists():
+        project_type = "node" if project_type == "unknown" else "mixed"
+        markers_found.append("package.json")
+    if (root / ".git").exists():
+        markers_found.append(".git")
+    if (root / "Makefile").exists():
+        markers_found.append("Makefile")
+    if (root / "GNUmakefile").exists():
+        markers_found.append("GNUmakefile")
+    
+    return {
+        "root": str(root.absolute()),
+        "type": project_type,
+        "markers_found": ", ".join(markers_found) if markers_found else "none",
+    }
+
+
+server.tool(get_project_root)
+
+
+async def list_project_files(
+    pattern: str = "*.py",
+    max_depth: int = 3,
+    exclude_patterns: str = ".git,__pycache__,node_modules,.venv,venv",
+) -> list[str]:
+    """List project files matching pattern, relative to project root.
+    
+    Args:
+        pattern: Glob pattern (*.py, src/**, etc.)
+        max_depth: Maximum directory depth to search
+        exclude_patterns: Comma-separated patterns to exclude
+        
+    Returns: [relative_path, ...] sorted alphabetically
+    """
+    root = _get_project_root()
+    exclude = {s.strip() for s in exclude_patterns.split(",") if s.strip()}
+    
+    def should_exclude(p: Path) -> bool:
+        """Check if path should be excluded."""
+        return any(part in exclude for part in p.parts)
+    
+    results = []
+    
+    # Handle different pattern types
+    if "**" in pattern:
+        # Recursive glob
+        glob_pattern = pattern
+    else:
+        # Non-recursive, search at all depths
+        glob_pattern = f"**/{pattern}"
+    
+    for file_path in sorted(root.glob(glob_pattern)):
+        if file_path.is_file() and not should_exclude(file_path):
+            try:
+                rel_path = file_path.relative_to(root)
+                depth = len(rel_path.parts)
+                if depth <= max_depth:
+                    results.append(str(rel_path))
+            except ValueError:
+                pass
+    
+    return sorted(results)
+
+
+server.tool(list_project_files)
+
+
+async def set_project_context(project_root: str) -> dict[str, str]:
+    """Explicitly set the project root (overrides auto-detection).
+    
+    Use this if auto-detection fails or gives wrong path.
+    
+    Args:
+        project_root: Absolute path to project root
+        
+    Returns: {project_root, status}
+    """
+    global _project_root
+    path = Path(project_root)
+    if not path.exists():
+        raise ValueError(f"Path does not exist: {project_root}")
+    if not path.is_dir():
+        raise ValueError(f"Path is not a directory: {project_root}")
+    
+    _project_root = path
+    return {
+        "project_root": str(path.absolute()),
+        "status": "set",
+    }
+
+
+server.tool(set_project_context)
+
+
+# ============================================================================
+# Profiling Tools
+# ============================================================================
 
 
 async def profile_script(
@@ -46,7 +208,7 @@ async def profile_script(
     """Profile a Python script using Scalene.
     
     Args:
-        script_path: Path to Python script
+        script_path: Path to Python script (absolute or relative to project root)
         cpu_only: Measure CPU time only
         include_memory: Profile memory allocations
         include_gpu: Profile GPU usage (requires NVIDIA GPU)
@@ -60,9 +222,9 @@ async def profile_script(
         
     Returns: {profile_id, summary, text_summary}
     """
-    path = Path(script_path)
+    path = _resolve_path(script_path)
     if not path.exists():
-        raise FileNotFoundError(f"Script not found: {script_path}")
+        raise FileNotFoundError(f"Script not found: {path}")
 
     # Run profiler
     profile = await profiler.profile_script(
