@@ -42,7 +42,7 @@ python -m scalene_mcp.server
 python -m scalene_mcp.server
 ```
 
-## 🎯 Native Integration with VSCode LLM Editors
+## 🎯 Native Integration with LLM Agents
 
 **Works seamlessly with:**
 - ✅ **[GitHub Copilot](SETUP_GITHUB_COPILOT.md)** - Direct integration
