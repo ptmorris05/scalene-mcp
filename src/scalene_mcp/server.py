@@ -7,6 +7,7 @@ from pathlib import Path
 from typing import Any
 
 from fastmcp import FastMCP
+from scalene_mcp.logging import get_logger
 
 from .analyzer import ProfileAnalyzer
 from .comparator import ProfileComparator
@@ -25,6 +26,8 @@ comparator = ProfileComparator()
 
 # Store recent profiles (in-memory for now)
 recent_profiles: dict[str, ProfileResult] = {}
+
+logger = get_logger(__name__)
 
 
 async def profile_script(

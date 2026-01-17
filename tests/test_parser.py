@@ -70,7 +70,7 @@ async def test_parse_invalid_json(parser: ProfileParser, tmp_path: Path):
     invalid_file = tmp_path / "invalid.json"
     invalid_file.write_text("not valid json {")
     
-    with pytest.raises(json.JSONDecodeError):
+    with pytest.raises((ValueError, json.JSONDecodeError)):
         parser.parse_file(invalid_file)
 
 

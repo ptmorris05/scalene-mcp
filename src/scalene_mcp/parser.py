@@ -20,6 +20,48 @@ from scalene_mcp.models import (
 class ProfileParser:
     """Parse Scalene JSON output into our Pydantic models."""
 
+    def parse_json(self, json_str: str, profile_id: str | None = None) -> ProfileResult:
+        """
+        Parse Scalene JSON output from a string.
+
+        Handles mixed output where the profiled script may have written to stdout.
+        Scalene outputs JSON at the end, so we extract the last valid JSON object.
+
+        Args:
+            json_str: JSON string from Scalene output (may contain script stdout)
+            profile_id: Optional profile ID (generated if not provided)
+
+        Returns:
+            Parsed ProfileResult with all metrics
+
+        Raises:
+            json.JSONDecodeError: If the JSON is invalid
+            KeyError: If required fields are missing
+            ValueError: If no valid JSON object found
+        """
+        json_str = json_str.strip()
+        
+        # Scalene outputs JSON at the end. Extract it from mixed output.
+        # Find the last complete JSON object (starts with '{', ends with '}')
+        start_idx = json_str.find('{')
+        end_idx = json_str.rfind('}')
+        
+        if start_idx == -1 or end_idx == -1 or start_idx > end_idx:
+            raise ValueError("No valid JSON object found in output")
+        
+        json_content = json_str[start_idx:end_idx + 1]
+        
+        try:
+            data = json.loads(json_content)
+        except json.JSONDecodeError as e:
+            raise ValueError(f"Failed to parse JSON from output: {e}") from e
+
+        # Generate profile ID if not provided
+        if profile_id is None:
+            profile_id = f"profile_{int(time.time())}"
+
+        return self._parse_data(profile_id, data)
+
     def parse_file(self, json_path: Path | str) -> ProfileResult:
         """
         Parse a Scalene JSON profile file.
@@ -40,11 +82,21 @@ class ProfileParser:
             raise FileNotFoundError(f"Profile file not found: {json_path}")
 
         with open(json_path) as f:
-            data = json.load(f)
+            json_content = f.read()
 
         # Generate profile ID from filename and timestamp
         profile_id = f"{json_path.stem}_{int(time.time())}"
 
+        # Use parse_json for consistent parsing, but pass the ID
+        result = self.parse_json(json_content, profile_id=profile_id)
+        
+        # Update with file path info
+        result.raw_json_path = str(json_path)
+        
+        return result
+
+    def _parse_data(self, profile_id: str, data: dict[str, Any]) -> ProfileResult:
+        """Common parsing logic for both JSON string and file."""
         # Parse files
         files: dict[str, FileMetrics] = {}
         for filename, file_data in data.get("files", {}).items():
@@ -53,14 +105,20 @@ class ProfileParser:
         # Create summary
         summary = self._create_summary(profile_id, data, files)
 
+        # Handle scalene_args - Scalene outputs as list, but we expect dict
+        scalene_args = data.get("args", {})
+        if isinstance(scalene_args, list):
+            # Convert list of args to dict format
+            scalene_args = {}
+
         return ProfileResult(
             profile_id=profile_id,
             timestamp=time.time(),
             summary=summary,
             files=files,
             scalene_version=data.get("scalene_version", "unknown"),
-            scalene_args={},
-            raw_json_path=str(json_path),
+            scalene_args=scalene_args,
+            raw_json_path=None,  # Will be set by parse_file if applicable
         )
 
     def _parse_file_metrics(

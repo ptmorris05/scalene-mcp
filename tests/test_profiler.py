@@ -38,7 +38,8 @@ def leaky_path(scripts_dir: Path) -> Path:
 @pytest.mark.asyncio
 async def test_profile_script_success(profiler: ScaleneProfiler, fibonacci_path: Path):
     """Test successful profiling of a script"""
-    result = await profiler.profile_script(fibonacci_path)
+    # Disable GPU to avoid PermissionError in test environments
+    result = await profiler.profile_script(fibonacci_path, gpu=False)
     
     assert isinstance(result, ProfileResult)
     assert result.profile_id
@@ -77,7 +78,7 @@ result = hello()
 @pytest.mark.asyncio
 async def test_profile_with_cpu_only(profiler: ScaleneProfiler, fibonacci_path: Path):
     """Test CPU-only profiling mode"""
-    result = await profiler.profile_script(fibonacci_path, cpu_only=True)
+    result = await profiler.profile_script(fibonacci_path, cpu_only=True, gpu=False)
     
     assert isinstance(result, ProfileResult)
     # CPU-only mode should still produce valid results
@@ -87,7 +88,7 @@ async def test_profile_with_cpu_only(profiler: ScaleneProfiler, fibonacci_path: 
 @pytest.mark.asyncio
 async def test_profile_with_memory_disabled(profiler: ScaleneProfiler, fibonacci_path: Path):
     """Test with memory profiling disabled"""
-    result = await profiler.profile_script(fibonacci_path, memory=False)
+    result = await profiler.profile_script(fibonacci_path, memory=False, gpu=False)
     
     assert isinstance(result, ProfileResult)
     # Should still have CPU data
@@ -101,6 +102,7 @@ async def test_profile_with_thresholds(profiler: ScaleneProfiler, fibonacci_path
         fibonacci_path,
         cpu_percent_threshold=5.0,
         malloc_threshold=1000,
+        gpu=False,
     )
     
     assert isinstance(result, ProfileResult)
@@ -118,7 +120,8 @@ print(f"Args: {sys.argv[1:]}")
     
     result = await profiler.profile_script(
         script,
-        script_args=["--test", "value"]
+        script_args=["--test", "value"],
+        gpu=False
     )
     
     assert isinstance(result, ProfileResult)
@@ -129,7 +132,8 @@ async def test_profile_reduced_profile(profiler: ScaleneProfiler, fibonacci_path
     """Test reduced profile mode"""
     result = await profiler.profile_script(
         fibonacci_path,
-        reduced_profile=True
+        reduced_profile=True,
+        gpu=False
     )
     
     assert isinstance(result, ProfileResult)
@@ -140,7 +144,8 @@ async def test_profile_with_leak_detector(profiler: ScaleneProfiler, leaky_path:
     """Test profiling with memory leak detection"""
     result = await profiler.profile_script(
         leaky_path,
-        memory_leak_detector=True
+        memory_leak_detector=True,
+        gpu=False
     )
     
     assert isinstance(result, ProfileResult)
@@ -151,7 +156,7 @@ async def test_profile_with_leak_detector(profiler: ScaleneProfiler, leaky_path:
 @pytest.mark.asyncio
 async def test_profile_memory_heavy(profiler: ScaleneProfiler, memory_heavy_path: Path):
     """Test profiling memory-intensive code"""
-    result = await profiler.profile_script(memory_heavy_path)
+    result = await profiler.profile_script(memory_heavy_path, gpu=False)
     
     assert isinstance(result, ProfileResult)
     # Memory-heavy script should show some data
@@ -170,7 +175,7 @@ time.sleep(10)
 """)
     
     with pytest.raises((TimeoutError, asyncio.TimeoutError)):
-        await profiler.profile_script(script, timeout=1.0)
+        await profiler.profile_script(script, timeout=1.0, gpu=False)
 
 
 @pytest.mark.asyncio
@@ -191,6 +196,7 @@ async def test_profile_with_all_options(profiler: ScaleneProfiler, fibonacci_pat
         cpu=True,
         memory=True,
         cpu_only=False,
+        gpu=False,
         cpu_sampling_rate=0.001,
         cpu_percent_threshold=2.0,
         malloc_threshold=50,
