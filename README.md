@@ -42,20 +42,30 @@ python -m scalene_mcp.server
 python -m scalene_mcp.server
 ```
 
-## Integration with VSCode LLM Editors
+## 🎯 Native Integration with VSCode LLM Editors
 
-Integrate Scalene MCP with **GitHub Copilot**, **Claude Code**, or **Cursor** for seamless Python profiling:
+**Works seamlessly with:**
+- ✅ **[GitHub Copilot](SETUP_VSCODE.md#github-copilot-in-vscode)** - Direct integration
+- ✅ **[Claude Code](SETUP_VSCODE.md#claude-code-vscode-extension)** - VSCode extension
+- ✅ **[Cursor](SETUP_VSCODE.md#cursor)** - All-in-one IDE
+- ✅ **Any MCP-compatible LLM client**
 
-### 3-Step Setup
+### Zero-Friction Setup (3 Steps)
 
 1. **Install**
    ```bash
    pip install scalene-mcp
    ```
 
-2. **Configure** (Choose your editor)
+2. **Configure** - Choose one method:
    
-   **GitHub Copilot:**
+   **Automated (Recommended):**
+   ```bash
+   python scripts/setup_vscode.py
+   ```
+   Interactive setup script auto-finds your editor and configures it.
+   
+   **Manual - GitHub Copilot:**
    ```json
    // .vscode/settings.json
    {
@@ -68,30 +78,27 @@ Integrate Scalene MCP with **GitHub Copilot**, **Claude Code**, or **Cursor** fo
    }
    ```
    
-   **Claude Code / Cursor:** See [SETUP_VSCODE.md](SETUP_VSCODE.md) for configuration
-   
-   **Or use the automated setup script:**
-   ```bash
-   python scripts/setup_vscode.py
-   ```
+   **Manual - Claude Code / Cursor:** See [SETUP_VSCODE.md](SETUP_VSCODE.md) for editor-specific configs
 
 3. **Restart VSCode** and start profiling!
 
-### Usage Example
+### Start Profiling Immediately
 
-Open any Python project in VSCode and ask your LLM:
+Open any Python project and ask your LLM:
 
 ```
-"Profile main.py and tell me the bottlenecks"
+"Profile main.py and show me the bottlenecks"
 ```
 
-The LLM will:
-- Auto-detect your project root
-- Find and profile your script
-- Analyze CPU, memory, and GPU usage
-- Provide optimization recommendations
+The LLM automatically:
+- 🔍 Detects your project structure
+- 📄 Finds and profiles your code
+- 📊 Analyzes CPU, memory, GPU usage
+- 💡 Suggests optimizations
 
-See **[SETUP_VSCODE.md](SETUP_VSCODE.md)** for detailed setup instructions and examples.
+**No path thinking. No manual configuration. Zero friction.**
+
+📚 **Full docs:** [SETUP_VSCODE.md](SETUP_VSCODE.md) | [QUICKSTART.md](QUICKSTART.md) | [TOOLS_REFERENCE.md](TOOLS_REFERENCE.md)
 
 ### Available Serving Methods (FastMCP)
 
